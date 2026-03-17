@@ -194,32 +194,32 @@ async function runDns(host, jsonMode) {
 async function runDoctor(host, jsonMode, portsInput) {
   const results = { host, checks: {} };
 
-  console.log(ui.title(`快速体检: ${host}`));
+  if (!jsonMode) console.log(ui.title(`快速体检: ${host}`));
 
   // 1. DNS
-  console.log(ui.dim('DNS 查询中...'));
+  if (!jsonMode) console.log(ui.dim('DNS 查询中...'));
   try {
     const lookup = await core.dnsLookup(host);
     results.checks.dns = { ok: true, addresses: lookup };
-    console.log(ui.ok('✓ DNS: ') + lookup.map(r => r.address).join(', '));
+    if (!jsonMode) console.log(ui.ok('✓ DNS: ') + lookup.map(r => r.address).join(', '));
   } catch (e) {
     results.checks.dns = { ok: false, error: e.message };
-    console.log(ui.err('✗ DNS: ') + e.message);
+    if (!jsonMode) console.log(ui.err('✗ DNS: ') + e.message);
   }
 
   // 2. Ping
-  console.log(ui.dim('Ping 中...'));
+  if (!jsonMode) console.log(ui.dim('Ping 中...'));
   try {
     const ping = await core.ping(host, { count: 2 });
     results.checks.ping = { ok: ping.ok, output: ping.stdout };
     if (ping.ok) {
-      console.log(ui.ok('✓ Ping: ') + '连通');
+      if (!jsonMode) console.log(ui.ok('✓ Ping: ') + '连通');
     } else {
-      console.log(ui.err('✗ Ping: ') + (ping.stderr || '失败'));
+      if (!jsonMode) console.log(ui.err('✗ Ping: ') + (ping.stderr || '失败'));
     }
   } catch (e) {
     results.checks.ping = { ok: false, error: e.message };
-    console.log(ui.err('✗ Ping: ') + e.message);
+    if (!jsonMode) console.log(ui.err('✗ Ping: ') + e.message);
   }
 
   // 3. TCP 端口
@@ -233,32 +233,34 @@ async function runDoctor(host, jsonMode, portsInput) {
   }
   results.ports = ports;
 
-  console.log(ui.dim(`TCP 端口检测中 (${ports.join(',')})...`));
+  if (!jsonMode) console.log(ui.dim(`TCP 端口检测中 (${ports.join(',')})...`));
   try {
     const tcp = await core.tcpBatchCheck(host, ports);
     results.checks.tcp = tcp;
-    for (const t of tcp) {
-      const status = t.ok ? ui.ok('✓') : ui.err('✗');
-      console.log(`${status} TCP ${t.port}: ${t.ok ? '开放' : t.error}`);
+    if (!jsonMode) {
+      for (const t of tcp) {
+        const status = t.ok ? ui.ok('✓') : ui.err('✗');
+        console.log(`${status} TCP ${t.port}: ${t.ok ? '开放' : t.error}`);
+      }
     }
   } catch (e) {
     results.checks.tcp = { ok: false, error: e.message };
-    console.log(ui.err('✗ TCP: ') + e.message);
+    if (!jsonMode) console.log(ui.err('✗ TCP: ') + e.message);
   }
 
   // 4. HTTP
-  console.log(ui.dim('HTTP 检测中...'));
+  if (!jsonMode) console.log(ui.dim('HTTP 检测中...'));
   try {
     const http = await core.httpCheck(`https://${host}`);
     results.checks.http = http;
     if (http.ok) {
-      console.log(ui.ok('✓ HTTPS: ') + `${http.status} (${http.ms}ms)`);
+      if (!jsonMode) console.log(ui.ok('✓ HTTPS: ') + `${http.status} (${http.ms}ms)`);
     } else {
-      console.log(ui.err('✗ HTTPS: ') + (http.error || `状态码 ${http.status}`));
+      if (!jsonMode) console.log(ui.err('✗ HTTPS: ') + (http.error || `状态码 ${http.status}`));
     }
   } catch (e) {
     results.checks.http = { ok: false, error: e.message };
-    console.log(ui.err('✗ HTTPS: ') + e.message);
+    if (!jsonMode) console.log(ui.err('✗ HTTPS: ') + e.message);
   }
 
   const dnsOk = Boolean(results.checks.dns && results.checks.dns.ok);
@@ -278,68 +280,68 @@ async function runDoctor(host, jsonMode, portsInput) {
 }
 
 async function runTcp(host, port, jsonMode) {
-  console.log(ui.title(`TCP 检测: ${host}:${port}`));
   try {
     const result = await core.tcpCheck(host, port);
-    const status = result.ok ? ui.ok('开放') : ui.err(result.error || '关闭');
-    console.log(ui.kvTable([
-      ['目标', `${host}:${port}`],
-      ['状态', status],
-      ['耗时', `${result.ms}ms`]
-    ]));
     if (jsonMode) {
       printJson('tcp', result);
       if (!result.ok) process.exitCode = 1;
+    } else {
+      console.log(ui.title(`TCP 检测: ${host}:${port}`));
+      const status = result.ok ? ui.ok('开放') : ui.err(result.error || '关闭');
+      console.log(ui.kvTable([
+        ['目标', `${host}:${port}`],
+        ['状态', status],
+        ['耗时', `${result.ms}ms`]
+      ]));
     }
     return result;
   } catch (e) {
-    console.log(ui.err('检测失败: ') + e.message);
     if (jsonMode) printJson('tcp', { ok: false, host, port, error: e.message });
+    else console.log(ui.err('检测失败: ') + e.message);
     process.exitCode = 1;
     return { ok: false, error: e.message };
   }
 }
 
 async function runHttp(url, jsonMode) {
-  console.log(ui.title(`HTTP 检测: ${url}`));
   try {
     const result = await core.httpCheck(url);
-    const status = result.ok ? ui.ok(result.status) : ui.err(result.status || '失败');
-    console.log(ui.kvTable([
-      ['URL', result.url],
-      ['状态码', status],
-      ['耗时', `${result.ms}ms`],
-      ['远程 IP', result.ip || '未知'],
-      ['重定向', result.location || '无']
-    ]));
-
-    if (result.chain.length > 1) {
-      console.log(ui.dim('\n重定向链:'));
-      for (const c of result.chain) {
-        console.log(ui.dim(`  → ${c.url} [${c.status}]`));
-      }
-    }
-
     if (jsonMode) {
       printJson('http', result);
       if (!result.ok) process.exitCode = 1;
+    } else {
+      console.log(ui.title(`HTTP 检测: ${url}`));
+      const status = result.ok ? ui.ok(result.status) : ui.err(result.status || '失败');
+      console.log(ui.kvTable([
+        ['URL', result.url],
+        ['状态码', status],
+        ['耗时', `${result.ms}ms`],
+        ['远程 IP', result.ip || '未知'],
+        ['重定向', result.location || '无']
+      ]));
+
+      if (result.chain.length > 1) {
+        console.log(ui.dim('\n重定向链:'));
+        for (const c of result.chain) {
+          console.log(ui.dim(`  → ${c.url} [${c.status}]`));
+        }
+      }
     }
     return result;
   } catch (e) {
-    console.log(ui.err('检测失败: ') + e.message);
     if (jsonMode) printJson('http', { ok: false, url, error: e.message });
+    else console.log(ui.err('检测失败: ') + e.message);
     process.exitCode = 1;
     return { ok: false, error: e.message };
   }
 }
 
 async function runListening(jsonMode, filterPort) {
-  console.log(ui.title('监听端口列表'));
   try {
     const result = await core.listListeningPorts();
     if (!result.ok) {
-      console.log(ui.err('获取失败: ') + result.stderr);
       if (jsonMode) printJson('listening', { ok: false, error: result.stderr || '获取失败' });
+      else console.log(ui.err('获取失败: ') + result.stderr);
       process.exitCode = 1;
       return { ok: false, error: result.stderr };
     }
@@ -382,20 +384,20 @@ async function runListening(jsonMode, filterPort) {
         p.process || '-'
       ]);
     }
-    console.log(ui.listTable(rows[0], rows.slice(1)));
-
-    if (ports.length > 50) {
-      console.log(ui.dim(`... 共 ${ports.length} 条，已截断显示`));
-    }
-
     if (jsonMode) {
       printJson('listening', { ok: true, entries: ports });
+    } else {
+      console.log(ui.title('监听端口列表'));
+      console.log(ui.listTable(rows[0], rows.slice(1)));
+      if (ports.length > 50) {
+        console.log(ui.dim(`... 共 ${ports.length} 条，已截断显示`));
+      }
     }
 
     return { ok: true, ports };
   } catch (e) {
-    console.log(ui.err('获取失败: ') + e.message);
     if (jsonMode) printJson('listening', { ok: false, error: e.message });
+    else console.log(ui.err('获取失败: ') + e.message);
     process.exitCode = 1;
     return { ok: false, error: e.message };
   }
@@ -447,7 +449,7 @@ async function interactiveMenu() {
 async function handleChoice(choice, config) {
   switch (choice) {
     case 'public-ip':
-      await runPublicIp();
+      await runPublicIp(false);
       break;
 
     case 'interfaces': {
@@ -478,7 +480,7 @@ async function handleChoice(choice, config) {
 
     case 'dns': {
       const host = await input({ message: '输入域名', default: 'github.com' });
-      await runDns(host);
+      await runDns(host, false);
 
       const types = ['A', 'AAAA', 'CNAME', 'TXT', 'MX', 'NS', 'SRV'];
       const more = await confirm({ message: '查询更多记录类型？', default: false });
@@ -553,12 +555,12 @@ async function handleChoice(choice, config) {
     }
 
     case 'listening':
-      await runListening(false);
+      await runListening(false, null);
       break;
 
     case 'doctor': {
       const host = await input({ message: '输入目标主机', default: 'github.com' });
-      await runDoctor(host, false);
+      await runDoctor(host, false, null);
       break;
     }
 
@@ -593,7 +595,7 @@ async function handleChoice(choice, config) {
           await runHttp(fav.target, false);
           break;
         case 'dns':
-          await runDns(fav.target);
+          await runDns(fav.target, false);
           break;
       }
       break;

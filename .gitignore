@@ -1,0 +1,16 @@
+node_modules/
+
+# AI 工具配置（不需要进仓库）
+.claude/
+
+# netq 输出（本机目录；如误加入仓库可忽略）
+.netq/
+
+# 临时文件
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.DS_Store
+Thumbs.db
+

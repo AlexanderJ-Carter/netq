@@ -1,0 +1,47 @@
+{
+  "name": "netq",
+  "version": "0.2.0",
+  "description": "netq：面向开发/运维/普通用户的轻量交互式网络排查 CLI（菜单式，一键公网IP/DNS/Ping/Tracert/端口/HTTP）",
+  "license": "MIT",
+  "author": "AlexanderJ-Carter <121274570+AlexanderJ-Carter@users.noreply.github.com>",
+  "type": "commonjs",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AlexanderJ-Carter/netq.git"
+  },
+  "bugs": {
+    "url": "https://github.com/AlexanderJ-Carter/netq/issues"
+  },
+  "homepage": "https://github.com/AlexanderJ-Carter/netq#readme",
+  "bin": {
+    "netq": "bin/netq.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "cli",
+    "network",
+    "diagnostics",
+    "ping",
+    "traceroute",
+    "dns",
+    "port",
+    "devops"
+  ],
+  "scripts": {
+    "start": "node bin/netq.js",
+    "lint": "node -c bin/netq.js && node -c src/core.js && node -c src/ui.js && node -c src/main.js && node -c src/storage.js"
+  },
+  "dependencies": {
+    "@inquirer/prompts": "^7.8.2",
+    "chalk": "^4.1.2",
+    "cli-table3": "^0.6.5"
+  }
+}

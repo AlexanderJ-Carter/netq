@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="zh-Hans">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>netq · 交互式网络排查 CLI</title>
+    <meta
+      name="description"
+      content="netq：面向开发/运维/普通用户的轻量交互式网络排查 CLI（菜单式，一键公网IP/DNS/Ping/Tracert/端口/HTTP）"
+    />
+    <style>
+      :root {
+        --bg: #0b0d12;
+        --panel: #111527;
+        --text: #e8ecff;
+        --muted: rgba(232, 236, 255, 0.72);
+        --line: rgba(232, 236, 255, 0.12);
+        --accent: #4fe3c1;
+        --accent2: #7aa7ff;
+        --warn: #ffd166;
+        --danger: #ff5c7a;
+        --shadow: 0 12px 40px rgba(0, 0, 0, 0.42);
+        --radius: 18px;
+      }
+
+      @media (prefers-color-scheme: light) {
+        :root {
+          --bg: #f6f7fb;
+          --panel: #ffffff;
+          --text: #101427;
+          --muted: rgba(16, 20, 39, 0.7);
+          --line: rgba(16, 20, 39, 0.12);
+          --accent: #008f7a;
+          --accent2: #2f6bff;
+          --warn: #9a6a00;
+          --danger: #c11d3a;
+          --shadow: 0 12px 40px rgba(16, 20, 39, 0.12);
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        height: 100%;
+      }
+
+      body {
+        margin: 0;
+        color: var(--text);
+        background: radial-gradient(1000px 700px at 15% 10%, rgba(79, 227, 193, 0.18), transparent 55%),
+          radial-gradient(900px 650px at 85% 15%, rgba(122, 167, 255, 0.18), transparent 60%),
+          radial-gradient(1100px 900px at 50% 95%, rgba(255, 92, 122, 0.12), transparent 60%),
+          var(--bg);
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans SC", "PingFang SC",
+          "Microsoft Yahei", Arial, sans-serif;
+        line-height: 1.5;
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+        border-bottom: 1px solid rgba(79, 227, 193, 0.35);
+      }
+      a:hover {
+        border-bottom-color: rgba(79, 227, 193, 0.7);
+      }
+
+      .wrap {
+        max-width: 1040px;
+        margin: 0 auto;
+        padding: 44px 18px 72px;
+      }
+
+      header {
+        display: grid;
+        grid-template-columns: 1.15fr 0.85fr;
+        gap: 20px;
+        align-items: start;
+        margin-bottom: 22px;
+      }
+
+      @media (max-width: 900px) {
+        header {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .hero {
+        padding: 26px 24px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+      }
+
+      .badge {
+        display: inline-flex;
+        gap: 10px;
+        align-items: center;
+        padding: 8px 12px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 99px;
+        background: var(--accent);
+        box-shadow: 0 0 0 4px rgba(79, 227, 193, 0.18);
+      }
+
+      h1 {
+        margin: 14px 0 10px;
+        font-size: 44px;
+        letter-spacing: -0.02em;
+        line-height: 1.12;
+      }
+
+      @media (max-width: 520px) {
+        h1 {
+          font-size: 36px;
+        }
+      }
+
+      .lead {
+        margin: 0 0 18px;
+        color: var(--muted);
+        font-size: 16px;
+      }
+
+      .cta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 16px;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        border-radius: 12px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--text);
+        cursor: pointer;
+        user-select: none;
+      }
+
+      .btn.primary {
+        border-color: rgba(79, 227, 193, 0.38);
+        background: linear-gradient(135deg, rgba(79, 227, 193, 0.22), rgba(122, 167, 255, 0.10));
+      }
+
+      .btn:hover {
+        transform: translateY(-1px);
+      }
+
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin-top: 14px;
+      }
+
+      @media (max-width: 900px) {
+        .cards {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .card {
+        padding: 16px 16px 14px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: rgba(17, 21, 39, 0.40);
+      }
+      @media (prefers-color-scheme: light) {
+        .card {
+          background: rgba(255, 255, 255, 0.74);
+        }
+      }
+      .card h3 {
+        margin: 0 0 6px;
+        font-size: 14px;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .card p {
+        margin: 0;
+        font-size: 14px;
+      }
+
+      .panel {
+        padding: 18px 18px 16px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: rgba(17, 21, 39, 0.35);
+        box-shadow: var(--shadow);
+      }
+      @media (prefers-color-scheme: light) {
+        .panel {
+          background: rgba(255, 255, 255, 0.7);
+        }
+      }
+
+      .panel h2 {
+        margin: 0 0 12px;
+        font-size: 16px;
+        letter-spacing: 0.01em;
+      }
+
+      pre {
+        margin: 0;
+        padding: 14px 14px;
+        border-radius: 14px;
+        border: 1px solid var(--line);
+        background: rgba(0, 0, 0, 0.35);
+        overflow: auto;
+      }
+      @media (prefers-color-scheme: light) {
+        pre {
+          background: rgba(16, 20, 39, 0.06);
+        }
+      }
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+        font-size: 13px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+        margin-top: 14px;
+      }
+      @media (max-width: 900px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .kvs {
+        display: grid;
+        gap: 10px;
+        margin-top: 8px;
+      }
+      .kv {
+        display: grid;
+        grid-template-columns: 140px 1fr;
+        gap: 10px;
+        padding: 10px 12px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.03);
+      }
+      @media (prefers-color-scheme: light) {
+        .kv {
+          background: rgba(16, 20, 39, 0.03);
+        }
+      }
+      .kv b {
+        color: var(--muted);
+        font-weight: 600;
+      }
+
+      footer {
+        margin-top: 18px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .tiny {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .pill {
+        display: inline-block;
+        padding: 2px 10px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        color: var(--muted);
+        font-size: 12px;
+        margin-right: 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <div class="hero">
+          <div class="badge"><span class="dot"></span><span>交互式网络排查 CLI</span><span class="pill">Node.js</span><span class="pill">跨平台</span></div>
+          <h1>netq</h1>
+          <p class="lead">
+            面向开发/运维/普通用户的轻量网络排查工具。核心目标只有一个：<b>把常用网络诊断变成“看得懂的一键结果”</b>，而不是让你背一堆命令参数。
+          </p>
+          <div class="cta">
+            <a class="btn primary" href="../README.md">查看 README</a>
+            <a class="btn" href="https://github.com/AlexanderJ-Carter/netq">GitHub 仓库</a>
+            <button class="btn" id="copy-install">复制安装命令</button>
+          </div>
+          <div class="cards">
+            <div class="card">
+              <h3>交互模式</h3>
+              <p>菜单式选择，无需记命令；适合临时排查。</p>
+            </div>
+            <div class="card">
+              <h3>非交互模式</h3>
+              <p>一条命令输出结果；适合脚本/CI。</p>
+            </div>
+            <div class="card">
+              <h3>导出报告</h3>
+              <p>结果可导出 TXT/JSON 到本机目录。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>最常用的 4 条命令</h2>
+          <pre><code>netq
+netq --doctor github.com --ports "80,443,3000-3010"
+netq --tcp github.com 443
+netq --http https://github.com</code></pre>
+          <div class="kvs">
+            <div class="kv"><b>设计原则</b><span>能交互就交互，能一键就一键；输出优先可读，其次可机器读（JSON）。</span></div>
+            <div class="kv"><b>无彩色输出</b><span><code>--no-color</code> 或环境变量 <code>NO_COLOR=1</code></span></div>
+          </div>
+        </div>
+      </header>
+
+      <section class="grid">
+        <div class="panel">
+          <h2>功能一览</h2>
+          <div class="kvs">
+            <div class="kv"><b>公网 IP</b><span>快速获取对外出口 IP（适合排查 NAT / 代理 / 出口变化）。</span></div>
+            <div class="kv"><b>DNS</b><span>lookup + A/AAAA 基本记录查询；必要时可拓展更多类型。</span></div>
+            <div class="kv"><b>Ping / Traceroute</b><span>连通性与路径定位，快速判断“通不通、卡在哪”。</span></div>
+            <div class="kv"><b>TCP / HTTP</b><span>端口连通性、HTTP 状态码/重定向链，辅助判断服务是否可达。</span></div>
+            <div class="kv"><b>监听端口</b><span>本机 Listening 列表，Windows 可解析 PID 进程名。</span></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>非交互（JSON）示例</h2>
+          <pre><code># 机器可读输出（失败会退出码=1）
+netq --doctor-json github.com --ports "80,443"
+
+# 输出结构大致如下：
+{
+  "command": "doctor",
+  "timestamp": "2026-03-17T00:00:00.000Z",
+  "host": "github.com",
+  "ports": [80, 443],
+  "checks": { },
+  "ok": true
+}</code></pre>
+          <p class="tiny" style="margin-top: 10px">
+            提示：脚本中可直接用退出码判断成败；或解析 <code>ok</code> 字段。
+          </p>
+        </div>
+      </section>
+
+      <footer>
+        <div>许可证：MIT · 安全策略：见仓库 <code>SECURITY.md</code> · 贡献：见 <code>CONTRIBUTING.md</code></div>
+        <div style="margin-top: 6px">本页为静态文件，可用 GitHub Pages 发布。</div>
+      </footer>
+    </div>
+
+    <script>
+      const install = "npm i -g netq";
+      const btn = document.getElementById("copy-install");
+      btn.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(install);
+          btn.textContent = "已复制：npm i -g netq";
+          setTimeout(() => (btn.textContent = "复制安装命令"), 1600);
+        } catch {
+          btn.textContent = "复制失败（请手动复制）";
+          setTimeout(() => (btn.textContent = "复制安装命令"), 1600);
+        }
+      });
+    </script>
+  </body>
+</html>
+

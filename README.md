@@ -78,4 +78,4 @@ netq
 | [CHANGELOG.md](CHANGELOG.md) | 更新记录 |
 | [RELEASE.md](RELEASE.md) | 维护者发布流程 |
 
-**页面展示**：功能与用法展示页见 [docs/index.html](docs/index.html)，启用 GitHub Pages 后也可访问：`https://<owner>.github.io/netq/`。
+**页面展示**：功能与用法展示页见 [docs/index.html](docs/index.html)。

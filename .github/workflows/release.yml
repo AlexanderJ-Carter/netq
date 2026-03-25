@@ -13,9 +13,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@v4
       - name: Setup Node.js
-        uses: actions/setup-node@1d0ff469b7ec7bfe1e2d3e5e4575d2d8a347a24f # v4.0.0
+        uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: "npm"
@@ -31,9 +31,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@v4
       - name: Setup Node.js
-        uses: actions/setup-node@1d0ff469b7ec7bfe1e2d3e5e4575d2d8a347a24f # v4.0.0
+        uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: "npm"
@@ -50,7 +50,7 @@ jobs:
           npm pack
           ls -la
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@c95fe1489396fe8d91274ee2819c4c2b55cf5614 # v2.2.1
+        uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
           files: "*.tgz"

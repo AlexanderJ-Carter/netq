@@ -5,6 +5,7 @@
   "license": "MIT",
   "author": "AlexanderJ-Carter <121274570+AlexanderJ-Carter@users.noreply.github.com>",
   "type": "commonjs",
+  "types": "./src/core.d.ts",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/AlexanderJ-Carter/netq.git"
@@ -37,11 +38,17 @@
   ],
   "scripts": {
     "start": "node bin/netq.js",
-    "lint": "node -c bin/netq.js && node -c src/core.js && node -c src/ui.js && node -c src/main.js && node -c src/storage.js"
+    "lint": "node -c bin/netq.js && node -c src/core.js && node -c src/ui.js && node -c src/main.js && node -c src/storage.js && node -c src/cli/args.js && node -c src/cli/help.js && node -c src/commands/index.js && node -c src/commands/public-ip.js && node -c src/commands/dns.js && node -c src/commands/tcp.js && node -c src/commands/http.js && node -c src/commands/listening.js && node -c src/commands/doctor.js && node -c src/interactive/menu.js",
+    "test": "jest",
+    "test:coverage": "jest --coverage"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
   },
   "dependencies": {
     "@inquirer/prompts": "^7.8.2",
     "chalk": "^4.1.2",
-    "cli-table3": "^0.6.5"
+    "cli-table3": "^0.6.5",
+    "ora": "^7.0.1"
   }
 }

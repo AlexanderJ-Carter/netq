@@ -7,22 +7,59 @@ const https = require('https');
 const http = require('http');
 const { spawn } = require('child_process');
 
+/** @type {boolean} Debug mode flag */
+const DEBUG = process.env.NETQ_DEBUG === '1' || process.env.NETQ_DEBUG === 'true';
+
+/**
+ * Log debug message if DEBUG mode is enabled
+ * @param {string} message - Debug message
+ */
+function debugLog(message) {
+  if (DEBUG) {
+    // eslint-disable-next-line no-console
+    console.error(`[DEBUG] ${new Date().toISOString()} ${message}`);
+  }
+}
+
+/**
+ * Check if the current platform is Windows
+ * @returns {boolean} True if running on Windows
+ */
 function isWindows() {
   return process.platform === 'win32';
 }
 
+/**
+ * Normalize and validate a host string
+ * @param {string|*} input - Input host string
+ * @returns {string} Normalized host string
+ * @throws {Error} If input is empty or invalid
+ */
 function normalizeHost(input) {
   const s = String(input || '').trim();
   if (!s) throw new Error('目标不能为空');
   return s;
 }
 
+/**
+ * Normalize and validate a port number
+ * @param {number|string|*} input - Input port
+ * @returns {number} Valid port number (1-65535)
+ * @throws {Error} If port is invalid or out of range
+ */
 function normalizePort(input) {
   const n = Number(String(input).trim());
   if (!Number.isInteger(n) || n < 1 || n > 65535) throw new Error('端口必须是 1-65535 的整数');
   return n;
 }
 
+/**
+ * Add timeout to a promise
+ * @param {Promise} promise - Promise to wrap
+ * @param {number} ms - Timeout in milliseconds
+ * @param {string} [timeoutMessage] - Custom timeout message
+ * @returns {Promise} Promise that rejects on timeout
+ */
 function withTimeout(promise, ms, timeoutMessage) {
   let t;
   const timeout = new Promise((_, reject) => {
@@ -31,6 +68,13 @@ function withTimeout(promise, ms, timeoutMessage) {
   return Promise.race([promise.finally(() => clearTimeout(t)), timeout]);
 }
 
+/**
+ * Fetch the public IP address
+ * @param {Object} [options] - Options
+ * @param {number} [options.timeoutMs=4000] - Timeout in milliseconds
+ * @returns {Promise<string>} Public IP address
+ * @throws {Error} If request fails or response is invalid
+ */
 async function fetchPublicIp({ timeoutMs = 4000 } = {}) {
   const req = new Promise((resolve, reject) => {
     const r = https.get('https://api.ipify.org?format=json', (res) => {
@@ -53,6 +97,10 @@ async function fetchPublicIp({ timeoutMs = 4000 } = {}) {
   return withTimeout(req, timeoutMs + 500, '获取公网 IP 超时');
 }
 
+/**
+ * Get local network interfaces information
+ * @returns {Array<{name: string, family: number, address: string, netmask: string, mac: string, internal: boolean}>}
+ */
 function getLocalInterfaces() {
   const nis = os.networkInterfaces();
   const rows = [];
@@ -73,12 +121,26 @@ function getLocalInterfaces() {
   return rows;
 }
 
+/**
+ * Perform DNS lookup for a host
+ * @param {string} target - Host to lookup
+ * @param {Object} [options] - Options
+ * @param {number} [options.family=0] - Address family (4 or 6, 0 for both)
+ * @returns {Promise<Array<{address: string, family: number}>>} Lookup results
+ */
 async function dnsLookup(target, { family = 0 } = {}) {
   const host = normalizeHost(target);
   const res = await dns.lookup(host, { all: true, family, verbatim: true });
   return res.map((r) => ({ address: r.address, family: r.family }));
 }
 
+/**
+ * Resolve DNS records for a host
+ * @param {string} target - Host to resolve
+ * @param {string} [rrtype='A'] - Record type (A, AAAA, CNAME, TXT, MX, NS, SRV)
+ * @returns {Promise<Array>} Resolution results
+ * @throws {Error} If record type is not supported
+ */
 async function dnsResolve(target, rrtype = 'A') {
   const host = normalizeHost(target);
   const type = String(rrtype || '').toUpperCase();
@@ -89,6 +151,14 @@ async function dnsResolve(target, rrtype = 'A') {
   return out;
 }
 
+/**
+ * Run a shell command with timeout
+ * @param {string} cmd - Command to run
+ * @param {string[]} args - Command arguments
+ * @param {Object} [options] - Options
+ * @param {number} [options.timeoutMs=15000] - Timeout in milliseconds
+ * @returns {Promise<{ok: boolean, code: number|null, stdout: string, stderr: string, cmd: string}>}
+ */
 function runCommand(cmd, args, { timeoutMs = 15000 } = {}) {
   return new Promise((resolve) => {
     const child = spawn(cmd, args, { windowsHide: true });
@@ -120,6 +190,14 @@ function runCommand(cmd, args, { timeoutMs = 15000 } = {}) {
   });
 }
 
+/**
+ * Ping a host
+ * @param {string} target - Host to ping
+ * @param {Object} [options] - Options
+ * @param {number} [options.count=4] - Number of ping packets
+ * @param {number} [options.timeoutMs=15000] - Timeout in milliseconds
+ * @returns {Promise<{ok: boolean, code: number|null, stdout: string, stderr: string, cmd: string}>}
+ */
 async function ping(target, { count = 4, timeoutMs = 15000 } = {}) {
   const host = normalizeHost(target);
   const n = Math.max(1, Math.min(10, Number(count) || 4));
@@ -129,15 +207,27 @@ async function ping(target, { count = 4, timeoutMs = 15000 } = {}) {
   return runCommand('ping', ['-c', String(n), host], { timeoutMs });
 }
 
+/**
+ * Run traceroute to a host
+ * @param {string} target - Host to trace
+ * @param {Object} [options] - Options
+ * @param {number} [options.timeoutMs=30000] - Timeout in milliseconds
+ * @returns {Promise<{ok: boolean, code: number|null, stdout: string, stderr: string, cmd: string}>}
+ */
 async function traceroute(target, { timeoutMs = 30000 } = {}) {
   const host = normalizeHost(target);
   if (isWindows()) {
     return runCommand('tracert', [host], { timeoutMs });
   }
-  // macOS/Linux 常见为 traceroute
   return runCommand('traceroute', [host], { timeoutMs });
 }
 
+/**
+ * Normalize and validate a URL string
+ * @param {string|*} input - Input URL string
+ * @returns {URL} Validated URL object
+ * @throws {Error} If URL is empty, invalid, or not http/https
+ */
 function normalizeUrl(input) {
   const s = String(input || '').trim();
   if (!s) throw new Error('URL 不能为空');
@@ -145,11 +235,36 @@ function normalizeUrl(input) {
     const u = new URL(s);
     if (u.protocol !== 'http:' && u.protocol !== 'https:') throw new Error('仅支持 http/https');
     return u;
-  } catch {
+  } catch (e) {
+    // Preserve the original error if it's our custom error
+    if (e.message === '仅支持 http/https') throw e;
     throw new Error('URL 格式不正确（例：https://example.com/path）');
   }
 }
 
+/**
+ * @typedef {Object} HttpCheckResult
+ * @property {string} url - Final URL
+ * @property {number} status - HTTP status code
+ * @property {string} statusText - HTTP status text
+ * @property {string} location - Redirect location (if any)
+ * @property {number} ms - Response time in milliseconds
+ * @property {string} ip - Remote IP address
+ * @property {boolean} ok - Whether the check succeeded
+ * @property {string} [error] - Error message (if failed)
+ * @property {Array<{address: string, family: number}>} resolved - Resolved IP addresses
+ * @property {Array} chain - Redirect chain
+ */
+
+/**
+ * Check HTTP(S) URL accessibility
+ * @param {string} urlInput - URL to check
+ * @param {Object} [options] - Options
+ * @param {string} [options.method='HEAD'] - HTTP method (HEAD or GET)
+ * @param {number} [options.timeoutMs=6000] - Timeout in milliseconds
+ * @param {number} [options.followRedirects=3] - Maximum redirects to follow
+ * @returns {Promise<HttpCheckResult>} Check result
+ */
 async function httpCheck(urlInput, { method = 'HEAD', timeoutMs = 6000, followRedirects = 3 } = {}) {
   const url = normalizeUrl(urlInput);
   const m = String(method || 'HEAD').toUpperCase();
@@ -161,8 +276,9 @@ async function httpCheck(urlInput, { method = 'HEAD', timeoutMs = 6000, followRe
     const host = url.hostname;
     const addrs = await dns.lookup(host, { all: true, verbatim: true });
     for (const a of addrs) resolved.push({ address: a.address, family: a.family });
-  } catch {
-    // ignore
+  } catch (e) {
+    // Log DNS resolution failure in debug mode instead of silently ignoring
+    debugLog(`httpCheck: DNS resolution failed for ${url.hostname}: ${e.message}`);
   }
 
   const doOne = (u) =>
@@ -180,7 +296,6 @@ async function httpCheck(urlInput, { method = 'HEAD', timeoutMs = 6000, followRe
           }
         },
         (res) => {
-          // 不读 body，速度更快
           res.resume();
           remoteAddress = (res.socket && res.socket.remoteAddress) ? String(res.socket.remoteAddress) : remoteAddress;
           resolve({
@@ -222,6 +337,23 @@ async function httpCheck(urlInput, { method = 'HEAD', timeoutMs = 6000, followRe
   return { url: url.toString(), ok: false, status: 0, statusText: '', location: '', ms: 0, error: '未知错误', resolved, chain };
 }
 
+/**
+ * @typedef {Object} TcpCheckResult
+ * @property {string} host - Target host
+ * @property {number} port - Target port
+ * @property {boolean} ok - Whether the port is open
+ * @property {number} ms - Connection time in milliseconds
+ * @property {string} [error] - Error message (if failed)
+ */
+
+/**
+ * Check if a TCP port is open on a host
+ * @param {string} hostInput - Target host
+ * @param {number|string} portInput - Target port
+ * @param {Object} [options] - Options
+ * @param {number} [options.timeoutMs=2500] - Timeout in milliseconds
+ * @returns {Promise<TcpCheckResult>} Check result
+ */
 async function tcpCheck(hostInput, portInput, { timeoutMs = 2500 } = {}) {
   const host = normalizeHost(hostInput);
   const port = normalizePort(portInput);
@@ -236,7 +368,10 @@ async function tcpCheck(hostInput, portInput, { timeoutMs = 2500 } = {}) {
       done = true;
       try {
         socket.destroy();
-      } catch {}
+      } catch (e) {
+        // Log socket destroy error in debug mode instead of silently ignoring
+        debugLog(`tcpCheck: socket.destroy() error for ${host}:${port}: ${e.message || e}`);
+      }
       resolve({
         host,
         port,
@@ -257,6 +392,15 @@ async function tcpCheck(hostInput, portInput, { timeoutMs = 2500 } = {}) {
   return result;
 }
 
+/**
+ * Check multiple TCP ports on a host with concurrency control
+ * @param {string} hostInput - Target host
+ * @param {Array<number|string>} ports - Ports to check
+ * @param {Object} [options] - Options
+ * @param {number} [options.timeoutMs=2500] - Timeout per port in milliseconds
+ * @param {number} [options.concurrency=50] - Maximum concurrent checks
+ * @returns {Promise<Array<TcpCheckResult>>} Check results, sorted by port
+ */
 async function tcpBatchCheck(hostInput, ports, { timeoutMs = 2500, concurrency = 50 } = {}) {
   const host = normalizeHost(hostInput);
   const list = Array.from(new Set(ports.map(normalizePort))).sort((a, b) => a - b);
@@ -276,10 +420,16 @@ async function tcpBatchCheck(hostInput, ports, { timeoutMs = 2500, concurrency =
   return out;
 }
 
+/**
+ * Parse a port list string into an array of port numbers
+ * Supports formats: "80", "80,443", "3000-3010", "80,443,3000-3010"
+ * @param {string} input - Port list string
+ * @returns {number[]} Array of port numbers
+ * @throws {Error} If input is empty, invalid, or range exceeds 2000 ports
+ */
 function parsePorts(input) {
   const s = String(input || '').trim();
   if (!s) throw new Error('端口列表不能为空');
-  // 支持：80,443, 3000-3010
   const parts = s.split(',').map((x) => x.trim()).filter(Boolean);
   const ports = [];
   for (const part of parts) {
@@ -299,8 +449,13 @@ function parsePorts(input) {
   return ports;
 }
 
+/**
+ * Get system network configuration info
+ * @param {Object} [options] - Options
+ * @param {number} [options.timeoutMs=12000] - Timeout in milliseconds
+ * @returns {Promise<{command: string, ok: boolean, stdout: string, stderr: string}>}
+ */
 async function systemNetInfo({ timeoutMs = 12000 } = {}) {
-  // 只做“快速可读”的信息，不做复杂解析
   if (isWindows()) {
     const ipconfig = await runCommand('ipconfig', ['/all'], { timeoutMs });
     return { command: ipconfig.cmd, ok: ipconfig.ok, stdout: ipconfig.stdout, stderr: ipconfig.stderr };
@@ -311,11 +466,16 @@ async function systemNetInfo({ timeoutMs = 12000 } = {}) {
   return { command: ip.cmd, ok: ip.ok, stdout: ip.stdout, stderr: ip.stderr };
 }
 
+/**
+ * List listening TCP/UDP ports
+ * @param {Object} [options] - Options
+ * @param {number} [options.timeoutMs=12000] - Timeout in milliseconds
+ * @returns {Promise<{ok: boolean, code: number|null, stdout: string, stderr: string, cmd: string}>}
+ */
 async function listListeningPorts({ timeoutMs = 12000 } = {}) {
   if (isWindows()) {
     return runCommand('netstat', ['-ano'], { timeoutMs });
   }
-  // macOS：lsof 通常可用；Linux：优先 ss，其次 netstat
   const lsof = await runCommand('lsof', ['-nP', '-iTCP', '-sTCP:LISTEN'], { timeoutMs });
   if (lsof.ok) return lsof;
   const ss = await runCommand('ss', ['-ltnp'], { timeoutMs });
@@ -323,12 +483,18 @@ async function listListeningPorts({ timeoutMs = 12000 } = {}) {
   return runCommand('netstat', ['-ltnp'], { timeoutMs });
 }
 
+/**
+ * Split a host:port string into components
+ * Handles IPv4 (192.168.1.1:80), IPv6 ([::1]:80), and hostnames
+ * @param {string} s - Host:port string
+ * @returns {{host: string, port: number}} Parsed host and port
+ */
 function splitHostPort(s) {
   const v = String(s || '').trim();
   // [::]:80
   const m6 = v.match(/^\[(.+)\]:(\d+)$/);
   if (m6) return { host: m6[1], port: Number(m6[2]) };
-  // 0.0.0.0:80 或 :::80（少见）
+  // 0.0.0.0:80 or :::80
   const idx = v.lastIndexOf(':');
   if (idx <= 0) return { host: v, port: 0 };
   const host = v.slice(0, idx);
@@ -336,6 +502,21 @@ function splitHostPort(s) {
   return { host, port: Number.isFinite(port) ? port : 0 };
 }
 
+/**
+ * @typedef {Object} ParsedPortEntry
+ * @property {string} proto - Protocol (TCP or UDP)
+ * @property {string} localAddr - Local address
+ * @property {number} localPort - Local port
+ * @property {string} state - Connection state
+ * @property {number} pid - Process ID
+ * @property {string} [process] - Process name (if available)
+ */
+
+/**
+ * Parse Windows netstat output
+ * @param {string} stdout - netstat -ano output
+ * @returns {ParsedPortEntry[]} Parsed port entries
+ */
 function parseWindowsNetstat(stdout) {
   const lines = String(stdout || '').split(/\r?\n/);
   const out = [];
@@ -345,7 +526,6 @@ function parseWindowsNetstat(stdout) {
     if (!/^TCP|^UDP/i.test(s)) continue;
     const parts = s.split(/\s+/);
     const proto = parts[0].toUpperCase();
-    // UDP 行没有 STATE
     if (proto === 'UDP') {
       if (parts.length < 4) continue;
       const local = splitHostPort(parts[1]);
@@ -368,8 +548,12 @@ function parseWindowsNetstat(stdout) {
   return out.filter((x) => x.localPort > 0);
 }
 
+/**
+ * Parse Linux ss command output
+ * @param {string} stdout - ss -ltnp output
+ * @returns {ParsedPortEntry[]} Parsed port entries
+ */
 function parseSs(stdout) {
-  // ss -ltnp
   const lines = String(stdout || '').split(/\r?\n/);
   const out = [];
   for (const line of lines) {
@@ -377,7 +561,6 @@ function parseSs(stdout) {
     if (!s) continue;
     if (/^State\s+/i.test(s)) continue;
     const parts = s.split(/\s+/);
-    // State Recv-Q Send-Q Local Address:Port Peer Address:Port Process
     if (parts.length < 5) continue;
     const state = parts[0];
     const local = splitHostPort(parts[3]);
@@ -396,8 +579,12 @@ function parseSs(stdout) {
   return out.filter((x) => x.localPort > 0);
 }
 
+/**
+ * Parse Unix netstat output
+ * @param {string} stdout - netstat -ltnp output
+ * @returns {ParsedPortEntry[]} Parsed port entries
+ */
 function parseUnixNetstat(stdout) {
-  // netstat -ltnp
   const lines = String(stdout || '').split(/\r?\n/);
   const out = [];
   for (const line of lines) {
@@ -406,7 +593,6 @@ function parseUnixNetstat(stdout) {
     if (/^Proto\s+/i.test(s)) continue;
     if (!/^(tcp|udp)/i.test(s)) continue;
     const parts = s.split(/\s+/);
-    // Proto Recv-Q Send-Q Local Address Foreign Address State PID/Program name
     if (parts.length < 4) continue;
     const proto = parts[0].toUpperCase();
     const local = splitHostPort(parts[3]);
@@ -425,6 +611,13 @@ function parseUnixNetstat(stdout) {
   return out.filter((x) => x.localPort > 0);
 }
 
+/**
+ * Resolve process names for given PIDs on Windows
+ * @param {number[]} pids - Array of PIDs
+ * @param {Object} [options] - Options
+ * @param {number} [options.timeoutMs=8000] - Timeout per PID in milliseconds
+ * @returns {Promise<Map<number, string>>} Map of PID to process name
+ */
 async function resolveWindowsProcessNames(pids, { timeoutMs = 8000 } = {}) {
   const uniq = Array.from(new Set((pids || []).filter((x) => Number.isFinite(x) && x > 0))).slice(0, 200);
   const map = new Map();
@@ -432,15 +625,19 @@ async function resolveWindowsProcessNames(pids, { timeoutMs = 8000 } = {}) {
     // eslint-disable-next-line no-await-in-loop
     const r = await runCommand('tasklist', ['/FI', `PID eq ${pid}`, '/FO', 'CSV', '/NH'], { timeoutMs });
     const line = (r.stdout || '').trim();
-    // "Image Name","PID","Session Name","Session#","Mem Usage"
     const m = line.match(/^"([^"]+)",\s*"(\d+)"/);
     if (m) map.set(pid, m[1]);
   }
   return map;
 }
 
+// Export internal helpers for testing
 module.exports = {
   isWindows,
+  normalizeHost,
+  normalizePort,
+  normalizeUrl,
+  splitHostPort,
   fetchPublicIp,
   getLocalInterfaces,
   dnsLookup,
@@ -458,4 +655,3 @@ module.exports = {
   parseUnixNetstat,
   resolveWindowsProcessNames
 };
-

@@ -1,7 +1,6 @@
 'use strict';
 
 const core = require('../core');
-const ui = require('../ui');
 const ora = require('ora');
 const { printJson } = require('./dns');
 

@@ -11,12 +11,24 @@ describe('normalizeHost', () => {
     expect(normalizeHost('192.168.1.1')).toBe('192.168.1.1');
   });
 
-  test('handles IPv6 address', () => {
-    expect(normalizeHost('::1')).toBe('::1');
+  test('handles IPv6 address in brackets', () => {
+    expect(normalizeHost('[::1]')).toBe('[::1]');
+  });
+
+  test('handles IPv6 address with full notation in brackets', () => {
+    expect(normalizeHost('[2001:db8::1]')).toBe('[2001:db8::1]');
   });
 
   test('handles localhost', () => {
     expect(normalizeHost('localhost')).toBe('localhost');
+  });
+
+  test('handles hostname with hyphens', () => {
+    expect(normalizeHost('my-server.example.com')).toBe('my-server.example.com');
+  });
+
+  test('handles hostname with subdomains', () => {
+    expect(normalizeHost('api.sub.example.com')).toBe('api.sub.example.com');
   });
 
   test('throws on empty string', () => {
@@ -33,6 +45,38 @@ describe('normalizeHost', () => {
 
   test('throws on undefined', () => {
     expect(() => normalizeHost(undefined)).toThrow('目标不能为空');
+  });
+
+  test('throws on hostname too long', () => {
+    const longHost = 'a'.repeat(254) + '.com';
+    expect(() => normalizeHost(longHost)).toThrow('主机名过长');
+  });
+
+  test('accepts hostname at max length (253 chars)', () => {
+    // Create a hostname exactly 253 characters: 250 + '.com' = 254, so use 249 + '.com' = 253
+    const maxHost = 'a'.repeat(249) + '.com';
+    expect(maxHost.length).toBe(253);
+    expect(normalizeHost(maxHost)).toBe(maxHost);
+  });
+
+  test('throws on invalid characters', () => {
+    expect(() => normalizeHost('example;com')).toThrow('主机名包含无效字符');
+  });
+
+  test('throws on shell special characters', () => {
+    expect(() => normalizeHost('example$(whoami).com')).toThrow('主机名包含无效字符');
+  });
+
+  test('throws on pipe character', () => {
+    expect(() => normalizeHost('example|com')).toThrow('主机名包含无效字符');
+  });
+
+  test('throws on backticks', () => {
+    expect(() => normalizeHost('`whoami`.com')).toThrow('主机名包含无效字符');
+  });
+
+  test('throws on spaces in hostname', () => {
+    expect(() => normalizeHost('example com')).toThrow('主机名包含无效字符');
   });
 });
 

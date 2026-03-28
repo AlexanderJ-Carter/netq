@@ -12,6 +12,7 @@ const { runPublicIp, runDns, runTcp, runHttp, runListening, runDoctor } = requir
 async function interactiveMenu() {
   const config = storage.readConfigSync();
 
+  // eslint-disable-next-line no-constant-condition
   while (true) {
     ui.clear();
     console.log('\n' + ui.brand());
@@ -191,11 +192,12 @@ async function handleChoice(choice, config) {
 
       const fav = favs[favChoice];
       switch (fav.type) {
-        case 'ping':
+        case 'ping': {
           console.log(ui.title(`Ping: ${fav.target}`));
           const pResult = await core.ping(fav.target);
           console.log(pResult.stdout || pResult.stderr);
           break;
+        }
         case 'tcp':
           await runTcp(fav.target, fav.port, { jsonMode: false });
           break;

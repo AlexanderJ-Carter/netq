@@ -21,6 +21,40 @@ function debugLog(message) {
   }
 }
 
+// DNS cache for avoiding redundant lookups
+const dnsCache = new Map();
+const DNS_CACHE_TTL = 60000; // 60 seconds
+
+/**
+ * Get cached DNS result or perform lookup
+ * @param {string} host - Hostname to lookup
+ * @param {Object} options - DNS lookup options
+ * @returns {Promise<Array>} DNS lookup result
+ */
+async function cachedDnsLookup(host, options) {
+  const cacheKey = `${host}:${JSON.stringify(options)}`;
+  const cached = dnsCache.get(cacheKey);
+
+  if (cached && Date.now() - cached.timestamp < DNS_CACHE_TTL) {
+    return cached.result;
+  }
+
+  const result = await dns.lookup(host, options);
+  dnsCache.set(cacheKey, { result, timestamp: Date.now() });
+
+  // Clean up expired entries periodically
+  if (dnsCache.size > 100) {
+    const now = Date.now();
+    for (const [key, value] of dnsCache.entries()) {
+      if (now - value.timestamp > DNS_CACHE_TTL) {
+        dnsCache.delete(key);
+      }
+    }
+  }
+
+  return result;
+}
+
 /**
  * Check if the current platform is Windows
  * @returns {boolean} True if running on Windows
@@ -33,11 +67,20 @@ function isWindows() {
  * Normalize and validate a host string
  * @param {string|*} input - Input host string
  * @returns {string} Normalized host string
- * @throws {Error} If input is empty or invalid
+ * @throws {Error} If input is empty, too long, or contains invalid characters
  */
 function normalizeHost(input) {
   const s = String(input || '').trim();
   if (!s) throw new Error('目标不能为空');
+  if (s.length > 253) throw new Error('主机名过长（最多 253 个字符）');
+  // Allow valid hostname characters: letters, digits, hyphens, dots
+  // Also allow IPv6 brackets and colons for addresses like [::1]
+  const ipv6Pattern = /^\[[a-fA-F0-9:]+\]$/;
+  if (ipv6Pattern.test(s)) return s;
+  // Standard hostname validation
+  if (!/^[a-zA-Z0-9.-]+$/.test(s)) {
+    throw new Error('主机名包含无效字符（仅允许字母、数字、连字符和点）');
+  }
   return s;
 }
 
@@ -122,7 +165,7 @@ function getLocalInterfaces() {
 }
 
 /**
- * Perform DNS lookup for a host
+ * Perform DNS lookup for a host (with caching)
  * @param {string} target - Host to lookup
  * @param {Object} [options] - Options
  * @param {number} [options.family=0] - Address family (4 or 6, 0 for both)
@@ -130,7 +173,7 @@ function getLocalInterfaces() {
  */
 async function dnsLookup(target, { family = 0 } = {}) {
   const host = normalizeHost(target);
-  const res = await dns.lookup(host, { all: true, family, verbatim: true });
+  const res = await cachedDnsLookup(host, { all: true, family, verbatim: true });
   return res.map((r) => ({ address: r.address, family: r.family }));
 }
 
@@ -613,6 +656,7 @@ function parseUnixNetstat(stdout) {
 
 /**
  * Resolve process names for given PIDs on Windows
+ * Uses parallel execution for better performance
  * @param {number[]} pids - Array of PIDs
  * @param {Object} [options] - Options
  * @param {number} [options.timeoutMs=8000] - Timeout per PID in milliseconds
@@ -621,13 +665,21 @@ function parseUnixNetstat(stdout) {
 async function resolveWindowsProcessNames(pids, { timeoutMs = 8000 } = {}) {
   const uniq = Array.from(new Set((pids || []).filter((x) => Number.isFinite(x) && x > 0))).slice(0, 200);
   const map = new Map();
-  for (const pid of uniq) {
-    // eslint-disable-next-line no-await-in-loop
-    const r = await runCommand('tasklist', ['/FI', `PID eq ${pid}`, '/FO', 'CSV', '/NH'], { timeoutMs });
-    const line = (r.stdout || '').trim();
-    const m = line.match(/^"([^"]+)",\s*"(\d+)"/);
-    if (m) map.set(pid, m[1]);
+
+  // Run all tasklist commands in parallel for much better performance
+  const results = await Promise.all(
+    uniq.map(async (pid) => {
+      const r = await runCommand('tasklist', ['/FI', `PID eq ${pid}`, '/FO', 'CSV', '/NH'], { timeoutMs });
+      const line = (r.stdout || '').trim();
+      const m = line.match(/^"([^"]+)",\s*"(\d+)"/);
+      return { pid, name: m ? m[1] : null };
+    })
+  );
+
+  for (const { pid, name } of results) {
+    if (name) map.set(pid, name);
   }
+
   return map;
 }
 

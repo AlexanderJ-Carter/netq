@@ -19,33 +19,7 @@ async function runDoctor(host, { jsonMode, portsInput, quiet = false }) {
 
   if (!jsonMode && !quiet) console.log(ui.title(`快速体检: ${host}`));
 
-  // 1. DNS
-  const dnsSpinner = !jsonMode && !quiet ? ora('DNS 查询中...').start() : null;
-  try {
-    const lookup = await core.dnsLookup(host);
-    results.checks.dns = { ok: true, addresses: lookup };
-    if (dnsSpinner) dnsSpinner.succeed(`DNS: ${lookup.map(r => r.address).join(', ')}`);
-  } catch (e) {
-    results.checks.dns = { ok: false, error: e.message };
-    if (dnsSpinner) dnsSpinner.fail(`DNS: ${e.message}`);
-  }
-
-  // 2. Ping
-  const pingSpinner = !jsonMode && !quiet ? ora('Ping 中...').start() : null;
-  try {
-    const ping = await core.ping(host, { count: 2 });
-    results.checks.ping = { ok: ping.ok, output: ping.stdout };
-    if (ping.ok) {
-      if (pingSpinner) pingSpinner.succeed('Ping: 连通');
-    } else {
-      if (pingSpinner) pingSpinner.fail(`Ping: ${ping.stderr || '失败'}`);
-    }
-  } catch (e) {
-    results.checks.ping = { ok: false, error: e.message };
-    if (pingSpinner) pingSpinner.fail(`Ping: ${e.message}`);
-  }
-
-  // 3. TCP ports
+  // Parse ports first (synchronous, fast)
   let ports = [80, 443];
   if (portsInput) {
     try {
@@ -56,13 +30,50 @@ async function runDoctor(host, { jsonMode, portsInput, quiet = false }) {
   }
   results.ports = ports;
 
+  // Phase 1: DNS and Ping in parallel
+  const dnsSpinner = !jsonMode && !quiet ? ora('DNS 查询中...').start() : null;
+  const pingSpinner = !jsonMode && !quiet ? ora('Ping 中...').start() : null;
+
+  const [dnsResult, pingResult] = await Promise.all([
+    core.dnsLookup(host).then(lookup => ({ ok: true, addresses: lookup })).catch(e => ({ ok: false, error: e.message })),
+    core.ping(host, { count: 2 }).then(ping => ({ ok: ping.ok, output: ping.stdout, stderr: ping.stderr })).catch(e => ({ ok: false, error: e.message }))
+  ]);
+
+  // Process DNS result
+  results.checks.dns = dnsResult;
+  if (dnsSpinner) {
+    if (dnsResult.ok) {
+      dnsSpinner.succeed(`DNS: ${dnsResult.addresses.map(r => r.address).join(', ')}`);
+    } else {
+      dnsSpinner.fail(`DNS: ${dnsResult.error}`);
+    }
+  }
+
+  // Process Ping result
+  results.checks.ping = pingResult;
+  if (pingSpinner) {
+    if (pingResult.ok) {
+      pingSpinner.succeed('Ping: 连通');
+    } else {
+      pingSpinner.fail(`Ping: ${pingResult.stderr || pingResult.error || '失败'}`);
+    }
+  }
+
+  // Phase 2: TCP and HTTP in parallel
   const tcpSpinner = !jsonMode && !quiet ? ora(`TCP 端口检测中 (${ports.join(',')})...`).start() : null;
-  try {
-    const tcp = await core.tcpBatchCheck(host, ports);
-    results.checks.tcp = tcp;
-    if (tcpSpinner) {
-      const openPorts = tcp.filter(t => t.ok).map(t => t.port);
-      const closedPorts = tcp.filter(t => !t.ok).map(t => t.port);
+  const httpSpinner = !jsonMode && !quiet ? ora('HTTP 检测中...').start() : null;
+
+  const [tcpResult, httpResult] = await Promise.all([
+    core.tcpBatchCheck(host, ports).catch(e => ({ ok: false, error: e.message })),
+    core.httpCheck(`https://${host}`).catch(e => ({ ok: false, error: e.message }))
+  ]);
+
+  // Process TCP result
+  results.checks.tcp = tcpResult;
+  if (tcpSpinner) {
+    if (Array.isArray(tcpResult)) {
+      const openPorts = tcpResult.filter(t => t.ok).map(t => t.port);
+      const closedPorts = tcpResult.filter(t => !t.ok).map(t => t.port);
       if (closedPorts.length === 0) {
         tcpSpinner.succeed(`TCP: ${openPorts.join(',')} 开放`);
       } else if (openPorts.length === 0) {
@@ -70,25 +81,19 @@ async function runDoctor(host, { jsonMode, portsInput, quiet = false }) {
       } else {
         tcpSpinner.warn(`TCP: ${openPorts.join(',')} 开放, ${closedPorts.join(',')} 关闭`);
       }
+    } else {
+      tcpSpinner.fail(`TCP: ${tcpResult.error || '失败'}`);
     }
-  } catch (e) {
-    results.checks.tcp = { ok: false, error: e.message };
-    if (tcpSpinner) tcpSpinner.fail(`TCP: ${e.message}`);
   }
 
-  // 4. HTTP
-  const httpSpinner = !jsonMode && !quiet ? ora('HTTP 检测中...').start() : null;
-  try {
-    const http = await core.httpCheck(`https://${host}`);
-    results.checks.http = http;
-    if (http.ok) {
-      if (httpSpinner) httpSpinner.succeed(`HTTPS: ${http.status} (${http.ms}ms)`);
+  // Process HTTP result
+  results.checks.http = httpResult;
+  if (httpSpinner) {
+    if (httpResult.ok) {
+      httpSpinner.succeed(`HTTPS: ${httpResult.status} (${httpResult.ms}ms)`);
     } else {
-      if (httpSpinner) httpSpinner.fail(`HTTPS: ${http.error || `状态码 ${http.status}`}`);
+      httpSpinner.fail(`HTTPS: ${httpResult.error || `状态码 ${httpResult.status}`}`);
     }
-  } catch (e) {
-    results.checks.http = { ok: false, error: e.message };
-    if (httpSpinner) httpSpinner.fail(`HTTPS: ${e.message}`);
   }
 
   const dnsOk = Boolean(results.checks.dns && results.checks.dns.ok);

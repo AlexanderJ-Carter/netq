@@ -1,6 +1,6 @@
 {
   "name": "netq",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "netq：面向开发/运维/普通用户的轻量交互式网络排查 CLI",
   "license": "MIT",
   "author": "AlexanderJ-Carter <121274570+AlexanderJ-Carter@users.noreply.github.com>",

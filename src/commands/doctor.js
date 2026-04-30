@@ -24,7 +24,7 @@ async function runDoctor(host, { jsonMode, portsInput, quiet = false }) {
   if (portsInput) {
     try {
       ports = core.parsePorts(portsInput);
-    } catch (e) {
+    } catch (_e) {
       if (!quiet) console.log(ui.warn('端口参数无效，使用默认端口'));
     }
   }

@@ -20,7 +20,6 @@ const ora = require('ora');
  * @param {Object} payload - Payload object
  */
 function printJson(command, payload) {
-  // eslint-disable-next-line no-console
   console.log(JSON.stringify({ command, timestamp: new Date().toISOString(), ...payload }, null, 2));
 }
 

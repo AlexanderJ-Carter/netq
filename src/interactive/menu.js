@@ -12,7 +12,6 @@ const { runPublicIp, runDns, runTcp, runHttp, runListening, runDoctor } = requir
 async function interactiveMenu() {
   const config = storage.readConfigSync();
 
-  // eslint-disable-next-line no-constant-condition
   while (true) {
     ui.clear();
     console.log('\n' + ui.brand());

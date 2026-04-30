@@ -23,7 +23,7 @@
     "netq": "bin/netq.js"
   },
   "engines": {
-    "node": ">=18"
+    "node": "^20.12.0 || ^21.7.0 || ^22.13.0 || >=23.5.0"
   },
   "files": [
     "bin/",
@@ -52,12 +52,14 @@
     "prepublishOnly": "npm run lint && npm test"
   },
   "devDependencies": {
-    "eslint": "^8.57.0",
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.2.0",
+    "globals": "^17.5.0",
     "jest": "^29.7.0",
-    "prettier": "^3.0.0"
+    "prettier": "^3.8.2"
   },
   "dependencies": {
-    "@inquirer/prompts": "^7.8.2",
+    "@inquirer/prompts": "^8.4.1",
     "chalk": "^4.1.2",
     "cli-table3": "^0.6.5",
     "ora": "^7.0.1"

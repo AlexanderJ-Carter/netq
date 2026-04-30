@@ -54,7 +54,6 @@ function hr() {
 
 function clear() {
   // 在大多数终端里足够好；不强依赖第三方 clear 包
-  // eslint-disable-next-line no-console
   console.clear();
 }
 

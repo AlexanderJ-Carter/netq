@@ -23,7 +23,6 @@ async function runPublicIp({ jsonMode, quiet = false }) {
   try {
     const ip = await core.fetchPublicIp();
     if (jsonMode) {
-      // eslint-disable-next-line no-console
       console.log(JSON.stringify({ command: 'public-ip', timestamp: new Date().toISOString(), ok: true, ip }, null, 2));
     } else if (!quiet) {
       if (spinner) spinner.succeed(`公网 IP: ${ip}`);
@@ -33,7 +32,6 @@ async function runPublicIp({ jsonMode, quiet = false }) {
     return { ok: true, ip };
   } catch (e) {
     if (jsonMode) {
-      // eslint-disable-next-line no-console
       console.log(JSON.stringify({ command: 'public-ip', timestamp: new Date().toISOString(), ok: false, error: e.message }, null, 2));
     } else if (!quiet) {
       if (spinner) spinner.fail(`获取公网 IP 失败: ${e.message}`);

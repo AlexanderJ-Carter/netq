@@ -16,7 +16,6 @@ const DEBUG = process.env.NETQ_DEBUG === '1' || process.env.NETQ_DEBUG === 'true
  */
 function debugLog(message) {
   if (DEBUG) {
-    // eslint-disable-next-line no-console
     console.error(`[DEBUG] ${new Date().toISOString()} ${message}`);
   }
 }
@@ -365,7 +364,6 @@ async function httpCheck(urlInput, { method = 'HEAD', timeoutMs = 6000, followRe
   let current = url;
   const chain = [];
   for (let i = 0; i <= followRedirects; i++) {
-    // eslint-disable-next-line no-await-in-loop
     const r = await doOne(current);
     chain.push(r);
     const isRedirect = r.status >= 300 && r.status < 400 && r.location;
@@ -454,7 +452,6 @@ async function tcpBatchCheck(hostInput, ports, { timeoutMs = 2500, concurrency =
   const workers = Array.from({ length: Math.min(limit, list.length) }, async () => {
     while (idx < list.length) {
       const p = list[idx++];
-      // eslint-disable-next-line no-await-in-loop
       out.push(await tcpCheck(host, p, { timeoutMs }));
     }
   });

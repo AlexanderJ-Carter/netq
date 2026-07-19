@@ -9,7 +9,7 @@ const {
   splitHostPort,
   withTimeout
 } = require('./normalize');
-const { runCommand } = require('./run-command');
+const { runCommand, decodeOutput } = require('./run-command');
 const { dnsLookup, dnsResolve } = require('./dns');
 const { fetchPublicIp } = require('./public-ip');
 const { getLocalInterfaces, systemNetInfo } = require('./interfaces');
@@ -33,6 +33,7 @@ module.exports = {
   splitHostPort,
   withTimeout,
   runCommand,
+  decodeOutput,
   dnsLookup,
   dnsResolve,
   fetchPublicIp,

@@ -2,7 +2,7 @@
 
 const lib = require('../lib');
 const ui = require('../ui');
-const ora = require('ora');
+const ora = require('./_ora');
 const { printJson } = require('./_output');
 const storage = require('../storage');
 

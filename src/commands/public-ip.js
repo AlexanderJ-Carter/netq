@@ -1,7 +1,7 @@
 'use strict';
 
 const lib = require('../lib');
-const ora = require('ora');
+const ora = require('./_ora');
 const { printJson } = require('./_output');
 
 /**

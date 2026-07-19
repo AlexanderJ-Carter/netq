@@ -2,6 +2,12 @@
 
 本项目遵循语义化版本（SemVer）。
 
+### v1.0.1
+
+**Bug Fixes**
+- 修复 `ora` v9 ESM 互操作导致的 `ora is not a function`
+- Windows 下 ping/tracert/netstat 等系统命令输出按 GB18030 解码，避免中文乱码
+
 ### v1.0.0
 
 **Breaking Changes**

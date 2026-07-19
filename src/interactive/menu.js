@@ -24,7 +24,6 @@ const { RR_TYPES } = require('../commands/dns');
  * Run the interactive menu loop.
  */
 async function interactiveMenu() {
-  // eslint-disable-next-line no-constant-condition
   while (true) {
     ui.clear();
     console.log('\n' + ui.brand());

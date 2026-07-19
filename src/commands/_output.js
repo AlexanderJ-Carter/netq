@@ -8,7 +8,6 @@
  * @param {Object} [data]
  */
 function printJson(command, ok, data = {}) {
-  // eslint-disable-next-line no-console
   console.log(
     JSON.stringify(
       {

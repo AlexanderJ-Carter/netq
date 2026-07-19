@@ -71,7 +71,6 @@ async function httpCheck(urlInput, { method = 'HEAD', timeoutMs = 6000, followRe
   let current = url;
   const chain = [];
   for (let i = 0; i <= followRedirects; i++) {
-    // eslint-disable-next-line no-await-in-loop
     const r = await doOne(current);
     chain.push(r);
     const isRedirect = r.status >= 300 && r.status < 400 && r.location;

@@ -8,7 +8,6 @@ const DEBUG = process.env.NETQ_DEBUG === '1' || process.env.NETQ_DEBUG === 'true
  */
 function debugLog(message) {
   if (DEBUG) {
-    // eslint-disable-next-line no-console
     console.error(`[DEBUG] ${new Date().toISOString()} ${message}`);
   }
 }

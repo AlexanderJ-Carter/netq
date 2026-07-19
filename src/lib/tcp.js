@@ -65,7 +65,6 @@ async function tcpBatchCheck(hostInput, ports, { timeoutMs = 2500, concurrency =
   const workers = Array.from({ length: Math.min(limit, list.length) }, async () => {
     while (idx < list.length) {
       const p = list[idx++];
-      // eslint-disable-next-line no-await-in-loop
       out.push(await tcpCheck(host, p, { timeoutMs }));
     }
   });

@@ -8,7 +8,7 @@
  */
 export interface FavoriteItem {
   label: string;
-  type: 'ping' | 'tcp' | 'http' | 'dns';
+  type: 'ping' | 'tcp' | 'http' | 'dns' | 'doctor';
   target: string;
   port?: number;
 }

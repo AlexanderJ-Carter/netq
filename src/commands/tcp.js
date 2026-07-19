@@ -1,54 +1,67 @@
 'use strict';
 
-const core = require('../core');
+const lib = require('../lib');
+const ui = require('../ui');
 const ora = require('ora');
-const { printJson } = require('./dns');
+const { printJson } = require('./_output');
+const storage = require('../storage');
 
 /**
- * @typedef {Object} TcpCheckResult
- * @property {string} host - Target host
- * @property {number} port - Target port
- * @property {boolean} ok - Whether the port is open
- * @property {number} ms - Connection time in milliseconds
- * @property {string} [error] - Error message (if failed)
+ * Run TCP port check(s).
+ * @param {string} host
+ * @param {string|number} portsInput - Single port or list like "80,443,3000-3010"
+ * @param {Object} [options]
+ * @param {boolean} [options.jsonMode]
+ * @param {boolean} [options.quiet]
+ * @param {number} [options.timeoutMs]
+ * @returns {Promise<{ok: boolean, host?: string, results?: Array, error?: string}>}
  */
-
-/**
- * Run the TCP check command
- * @param {string} host - Target host
- * @param {number} port - Target port
- * @param {Object} options - Command options
- * @param {boolean} options.jsonMode - Output in JSON format
- * @param {boolean} options.quiet - Quiet mode (minimal output)
- * @returns {Promise<TcpCheckResult>} Command result
- */
-async function runTcp(host, port, { jsonMode, quiet = false }) {
-  const spinner = !jsonMode && !quiet ? ora(`TCP 检测: ${host}:${port}...`).start() : null;
+async function runTcp(host, portsInput, { jsonMode = false, quiet = false, timeoutMs } = {}) {
+  const cfg = storage.readConfigSync();
+  const ms = timeoutMs ?? cfg.defaults.tcpTimeoutMs ?? 2500;
+  const label = String(portsInput);
+  const spinner = !jsonMode && !quiet ? ora(`TCP 检测: ${host} (${label})...`).start() : null;
 
   try {
-    const result = await core.tcpCheck(host, port);
+    const ports = typeof portsInput === 'number' ? [portsInput] : lib.parsePorts(String(portsInput));
+    const results =
+      ports.length === 1
+        ? [await lib.tcpCheck(host, ports[0], { timeoutMs: ms })]
+        : await lib.tcpBatchCheck(host, ports, { timeoutMs: ms });
+
+    const ok = results.every((r) => r.ok);
+
     if (jsonMode) {
-      printJson('tcp', result);
-      if (!result.ok) process.exitCode = 1;
+      printJson('tcp', ok, { host, results });
     } else if (!quiet) {
-      if (result.ok) {
-        if (spinner) spinner.succeed(`${host}:${port} 开放 (${result.ms}ms)`);
+      if (results.length === 1) {
+        const r = results[0];
+        if (r.ok) {
+          if (spinner) spinner.succeed(`${host}:${r.port} 开放 (${r.ms}ms)`);
+        } else if (spinner) {
+          spinner.fail(`${host}:${r.port} ${r.error || '关闭'}`);
+        }
       } else {
-        if (spinner) spinner.fail(`${host}:${port} ${result.error || '关闭'}`);
+        if (spinner) spinner.stop();
+        console.log(ui.title(`TCP 检测: ${host}`));
+        const rows = [['端口', '状态', '耗时']];
+        for (const r of results) {
+          rows.push([String(r.port), r.ok ? ui.ok('开放') : ui.err(r.error || '关闭'), `${r.ms}ms`]);
+        }
+        console.log(ui.listTable(rows[0], rows.slice(1)));
       }
     } else {
-      console.log(result.ok ? 'open' : 'closed');
+      for (const r of results) {
+        console.log(`${r.port}\t${r.ok ? 'open' : 'closed'}`);
+      }
     }
-    return result;
+
+    return { ok, host, results };
   } catch (e) {
-    if (jsonMode) printJson('tcp', { ok: false, host, port, error: e.message });
-    else if (!quiet) {
-      if (spinner) spinner.fail(`TCP 检测失败: ${e.message}`);
-    } else {
-      console.error(e.message);
-    }
-    process.exitCode = 1;
-    return { ok: false, error: e.message };
+    if (jsonMode) printJson('tcp', false, { host, error: e.message });
+    else if (!quiet && spinner) spinner.fail(`TCP 检测失败: ${e.message}`);
+    else if (quiet) console.error(e.message);
+    return { ok: false, host, error: e.message };
   }
 }
 

@@ -4,20 +4,25 @@
 
 ## 开发环境
 
-- Node.js >= 18
+- Node.js >= 20（见 `package.json` engines）
 
 安装依赖并运行：
 
 ```bash
 npm install
 npm start
+# 或直接：
+node bin/netq.js help
 ```
 
-语法检查：
+检查与测试：
 
 ```bash
 npm run lint
+npm test
 ```
+
+CLI 为子命令风格（`netq dns github.com`），库代码在 `src/lib/`，命令编排在 `src/commands/`。
 
 ## 提交规范（建议）
 

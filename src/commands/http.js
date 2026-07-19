@@ -1,45 +1,37 @@
 'use strict';
 
-const core = require('../core');
+const lib = require('../lib');
 const ui = require('../ui');
 const ora = require('ora');
-const { printJson } = require('./dns');
+const { printJson } = require('./_output');
+const storage = require('../storage');
 
 /**
- * @typedef {Object} HttpCheckResult
- * @property {string} url - The checked URL
- * @property {number} status - HTTP status code
- * @property {string} statusText - HTTP status text
- * @property {number} ms - Response time in milliseconds
- * @property {boolean} ok - Whether the check succeeded
- * @property {string} [error] - Error message (if failed)
- * @property {string} [ip] - Remote IP address
- * @property {string} [location] - Redirect location
+ * Run HTTP(S) check.
+ * @param {string} url
+ * @param {Object} [options]
+ * @param {boolean} [options.jsonMode]
+ * @param {boolean} [options.quiet]
+ * @param {string} [options.method]
+ * @param {number} [options.timeoutMs]
+ * @returns {Promise<Object>}
  */
-
-/**
- * Run the HTTP check command
- * @param {string} url - URL to check
- * @param {Object} options - Command options
- * @param {boolean} options.jsonMode - Output in JSON format
- * @param {boolean} options.quiet - Quiet mode (minimal output)
- * @returns {Promise<HttpCheckResult>} Command result
- */
-async function runHttp(url, { jsonMode, quiet = false }) {
+async function runHttp(url, { jsonMode = false, quiet = false, method = 'HEAD', timeoutMs } = {}) {
+  const cfg = storage.readConfigSync();
+  const ms = timeoutMs ?? cfg.defaults.httpTimeoutMs ?? 6000;
   const spinner = !jsonMode && !quiet ? ora(`HTTP 检测: ${url}...`).start() : null;
 
   try {
-    const result = await core.httpCheck(url);
+    const result = await lib.httpCheck(url, { method, timeoutMs: ms });
     if (jsonMode) {
-      printJson('http', result);
-      if (!result.ok) process.exitCode = 1;
+      printJson('http', result.ok, result);
     } else if (!quiet) {
       if (result.ok) {
         if (spinner) spinner.succeed(`${result.url} [${result.status}] (${result.ms}ms)`);
-      } else {
-        if (spinner) spinner.fail(`${result.url}: ${result.error || `状态码 ${result.status}`}`);
+      } else if (spinner) {
+        spinner.fail(`${result.url}: ${result.error || `状态码 ${result.status}`}`);
       }
-      if (result.chain.length > 1) {
+      if (result.chain && result.chain.length > 1) {
         console.log(ui.dim('\n重定向链:'));
         for (const c of result.chain) {
           console.log(ui.dim(`  → ${c.url} [${c.status}]`));
@@ -50,14 +42,10 @@ async function runHttp(url, { jsonMode, quiet = false }) {
     }
     return result;
   } catch (e) {
-    if (jsonMode) printJson('http', { ok: false, url, error: e.message });
-    else if (!quiet) {
-      if (spinner) spinner.fail(`HTTP 检测失败: ${e.message}`);
-    } else {
-      console.error(e.message);
-    }
-    process.exitCode = 1;
-    return { ok: false, error: e.message };
+    if (jsonMode) printJson('http', false, { url, error: e.message });
+    else if (!quiet && spinner) spinner.fail(`HTTP 检测失败: ${e.message}`);
+    else if (quiet) console.error(e.message);
+    return { ok: false, url, error: e.message };
   }
 }
 

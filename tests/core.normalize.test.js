@@ -1,6 +1,6 @@
 'use strict';
 
-const { normalizeHost, normalizePort, normalizeUrl } = require('../src/core');
+const { normalizeHost, normalizePort, normalizeUrl } = require('../src/lib');
 
 describe('normalizeHost', () => {
   test('returns trimmed string', () => {

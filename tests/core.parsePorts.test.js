@@ -1,6 +1,6 @@
 'use strict';
 
-const { parsePorts } = require('../src/core');
+const { parsePorts } = require('../src/lib');
 
 describe('parsePorts', () => {
   describe('single port', () => {

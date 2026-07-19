@@ -1,6 +1,6 @@
 'use strict';
 
-const { parseWindowsNetstat, parseSs, parseUnixNetstat } = require('../src/core');
+const { parseWindowsNetstat, parseSs, parseUnixNetstat } = require('../src/lib');
 
 describe('parseWindowsNetstat', () => {
   test('parses TCP connections', () => {

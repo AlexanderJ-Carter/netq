@@ -1,4 +1,5 @@
 node_modules/
+coverage/
 
 # AI 工具配置（不需要进仓库）
 .claude/

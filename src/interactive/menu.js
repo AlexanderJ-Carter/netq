@@ -1,17 +1,30 @@
 'use strict';
 
-const core = require('../core');
 const ui = require('../ui');
 const storage = require('../storage');
 const { select, input, confirm } = require('@inquirer/prompts');
-const { runPublicIp, runDns, runTcp, runHttp, runListening, runDoctor } = require('../commands');
+const {
+  runPublicIp,
+  runDns,
+  runTcp,
+  runHttp,
+  runListening,
+  runDoctor,
+  runPing,
+  runTraceroute,
+  runInterfaces,
+  runFavoritesList,
+  runFavoritesAdd,
+  runFavoritesRemove,
+  runFavoritesRun
+} = require('../commands');
+const { RR_TYPES } = require('../commands/dns');
 
 /**
- * Run the interactive menu loop
+ * Run the interactive menu loop.
  */
 async function interactiveMenu() {
-  const config = storage.readConfigSync();
-
+  // eslint-disable-next-line no-constant-condition
   while (true) {
     ui.clear();
     console.log('\n' + ui.brand());
@@ -41,7 +54,7 @@ async function interactiveMenu() {
     }
 
     try {
-      await handleChoice(choice, config);
+      await handleChoice(choice);
     } catch (e) {
       console.log(ui.err('\n操作失败: ') + e.message);
     }
@@ -51,165 +64,165 @@ async function interactiveMenu() {
 }
 
 /**
- * Handle menu choice
- * @param {string} choice - Selected menu option
- * @param {Object} config - Configuration object
+ * Handle a menu choice via shared commands.
+ * @param {string} choice
  */
-async function handleChoice(choice, config) {
+async function handleChoice(choice) {
+  const cfg = storage.readConfigSync();
+
   switch (choice) {
     case 'public-ip':
       await runPublicIp({ jsonMode: false });
       break;
 
     case 'interfaces': {
-      console.log(ui.title('本机网卡信息'));
-      const ifaces = core.getLocalInterfaces();
-      const rows = [['名称', '协议', '地址', '子网掩码', 'MAC', '内部']];
-      for (const i of ifaces) {
-        rows.push([
-          i.name,
-          `IPv${i.family}`,
-          i.address,
-          i.netmask || '-',
-          i.mac || '-',
-          i.internal ? '是' : '否'
-        ]);
-      }
-      console.log(ui.listTable(rows[0], rows.slice(1)));
-
-      const showSystem = await confirm({ message: '显示系统网络配置详情？', default: false });
-      if (showSystem) {
-        console.log(ui.dim('\n系统网络配置:\n'));
-        const sys = await core.systemNetInfo();
-        console.log(sys.stdout || sys.stderr);
-      }
+      const system = await confirm({ message: '同时显示系统网络配置详情？', default: false });
+      await runInterfaces({ jsonMode: false, system });
       break;
     }
 
     case 'dns': {
       const host = await input({ message: '输入域名', default: 'github.com' });
       await runDns(host, { jsonMode: false });
-
-      const types = ['A', 'AAAA', 'CNAME', 'TXT', 'MX', 'NS', 'SRV'];
       const more = await confirm({ message: '查询更多记录类型？', default: false });
       if (more) {
         const rtype = await select({
           message: '选择记录类型',
-          choices: types.map(t => ({ name: t, value: t }))
+          choices: RR_TYPES.map((t) => ({ name: t, value: t }))
         });
-        try {
-          const result = await core.dnsResolve(host, rtype);
-          console.log(ui.kvTable([[rtype, Array.isArray(result) ? result.join('\n') : String(result)]]));
-        } catch (e) {
-          console.log(ui.err('查询失败: ') + e.message);
-        }
+        await runDns(host, { jsonMode: false, type: rtype });
       }
       break;
     }
 
     case 'ping': {
       const host = await input({ message: '输入目标主机', default: '1.1.1.1' });
-      const count = await input({ message: 'Ping 次数', default: '4' });
-      console.log(ui.title(`Ping: ${host}`));
-      console.log(ui.dim('执行中...\n'));
-      const result = await core.ping(host, { count: Number(count) });
-      console.log(result.stdout || result.stderr);
+      const countRaw = await input({
+        message: 'Ping 次数',
+        default: String(cfg.defaults.pingCount || 4)
+      });
+      await runPing(host, { jsonMode: false, count: Number(countRaw) });
       break;
     }
 
     case 'traceroute': {
       const host = await input({ message: '输入目标主机', default: 'github.com' });
-      console.log(ui.title(`Traceroute: ${host}`));
-      console.log(ui.dim('执行中（可能需要较长时间）...\n'));
-      const result = await core.traceroute(host);
-      console.log(result.stdout || result.stderr);
+      await runTraceroute(host, { jsonMode: false });
       break;
     }
 
     case 'tcp': {
       const host = await input({ message: '输入目标主机', default: 'github.com' });
       const portsStr = await input({ message: '端口（支持 80,443,3000-3010）', default: '443' });
-      const ports = core.parsePorts(portsStr);
-      console.log(ui.title(`TCP 检测: ${host}`));
-
-      if (ports.length === 1) {
-        const result = await core.tcpCheck(host, ports[0]);
-        const status = result.ok ? ui.ok('开放') : ui.err(result.error || '关闭');
-        console.log(ui.kvTable([
-          ['目标', `${host}:${ports[0]}`],
-          ['状态', status],
-          ['耗时', `${result.ms}ms`]
-        ]));
-      } else {
-        console.log(ui.dim(`检测 ${ports.length} 个端口...\n`));
-        const results = await core.tcpBatchCheck(host, ports);
-        const rows = [['端口', '状态', '耗时']];
-        for (const r of results) {
-          rows.push([
-            String(r.port),
-            r.ok ? ui.ok('开放') : ui.err(r.error || '关闭'),
-            `${r.ms}ms`
-          ]);
-        }
-        console.log(ui.listTable(rows[0], rows.slice(1)));
-      }
+      await runTcp(host, portsStr, { jsonMode: false });
       break;
     }
 
     case 'http': {
       const url = await input({ message: '输入 URL', default: 'https://github.com' });
-      await runHttp(url, { jsonMode: false });
+      const method = await select({
+        message: 'HTTP 方法',
+        choices: [
+          { name: 'HEAD', value: 'HEAD' },
+          { name: 'GET', value: 'GET' }
+        ]
+      });
+      await runHttp(url, { jsonMode: false, method });
       break;
     }
 
-    case 'listening':
-      await runListening({ jsonMode: false });
+    case 'listening': {
+      const filter = await confirm({ message: '按端口过滤？', default: false });
+      let filterPort;
+      if (filter) {
+        const raw = await input({ message: '端口', default: '3000' });
+        filterPort = Number(raw);
+      }
+      await runListening({ jsonMode: false, filterPort });
       break;
+    }
 
     case 'doctor': {
       const host = await input({ message: '输入目标主机', default: 'github.com' });
-      await runDoctor(host, { jsonMode: false });
+      const customPorts = await confirm({ message: '自定义检测端口？', default: false });
+      let portsInput;
+      if (customPorts) {
+        portsInput = await input({ message: '端口列表', default: '80,443' });
+      }
+      const exportReport = await confirm({ message: '导出报告到 ~/.netq/reports/？', default: false });
+      await runDoctor(host, { jsonMode: false, portsInput, exportReport });
       break;
     }
 
-    case 'favorites': {
-      const favs = config.favorites || [];
-      if (favs.length === 0) {
-        console.log(ui.warn('暂无收藏'));
-        return;
-      }
-
-      const favChoice = await select({
-        message: '选择收藏项',
-        choices: [
-          ...favs.map((f, i) => ({ name: f.label, value: i })),
-          { name: '← 返回', value: -1 }
-        ]
-      });
-
-      if (favChoice === -1) return;
-
-      const fav = favs[favChoice];
-      switch (fav.type) {
-        case 'ping': {
-          console.log(ui.title(`Ping: ${fav.target}`));
-          const pResult = await core.ping(fav.target);
-          console.log(pResult.stdout || pResult.stderr);
-          break;
-        }
-        case 'tcp':
-          await runTcp(fav.target, fav.port, { jsonMode: false });
-          break;
-        case 'http':
-          await runHttp(fav.target, { jsonMode: false });
-          break;
-        case 'dns':
-          await runDns(fav.target, { jsonMode: false });
-          break;
-      }
+    case 'favorites':
+      await favoritesMenu();
       break;
-    }
   }
+}
+
+/**
+ * Favorites submenu: list / add / remove / run.
+ */
+async function favoritesMenu() {
+  const action = await select({
+    message: '收藏夹',
+    choices: [
+      { name: '列出', value: 'list' },
+      { name: '运行', value: 'run' },
+      { name: '添加', value: 'add' },
+      { name: '删除', value: 'remove' },
+      { name: '← 返回', value: 'back' }
+    ]
+  });
+
+  if (action === 'back') return;
+
+  if (action === 'list') {
+    await runFavoritesList({ jsonMode: false });
+    return;
+  }
+
+  if (action === 'add') {
+    const type = await select({
+      message: '类型',
+      choices: [
+        { name: 'ping', value: 'ping' },
+        { name: 'tcp', value: 'tcp' },
+        { name: 'http', value: 'http' },
+        { name: 'dns', value: 'dns' },
+        { name: 'doctor', value: 'doctor' }
+      ]
+    });
+    const target = await input({
+      message: type === 'http' ? 'URL' : '目标主机',
+      default: type === 'http' ? 'https://www.baidu.com' : '1.1.1.1'
+    });
+    let port;
+    if (type === 'tcp') {
+      port = Number(await input({ message: '端口', default: '443' }));
+    }
+    const label = await input({
+      message: '标签',
+      default: port !== undefined && port !== null ? `${type}: ${target}:${port}` : `${type}: ${target}`
+    });
+    await runFavoritesAdd({ type, target, port, label }, { jsonMode: false });
+    return;
+  }
+
+  const cfg = storage.readConfigSync();
+  const favorites = cfg.favorites || [];
+  if (favorites.length === 0) {
+    console.log(ui.warn('暂无收藏'));
+    return;
+  }
+
+  const index = await select({
+    message: action === 'run' ? '选择要运行的收藏' : '选择要删除的收藏',
+    choices: favorites.map((f, i) => ({ name: f.label, value: i + 1 }))
+  });
+
+  if (action === 'run') await runFavoritesRun(index, { jsonMode: false });
+  else await runFavoritesRemove(index, { jsonMode: false });
 }
 
 module.exports = { interactiveMenu, handleChoice };

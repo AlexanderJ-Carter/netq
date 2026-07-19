@@ -3,182 +3,145 @@
 const { parseArgs } = require('../src/cli/args');
 
 describe('parseArgs', () => {
-  describe('help and version', () => {
-    test('parses --help flag', () => {
-      const result = parseArgs(['--help']);
-      expect(result.help).toBe(true);
-      expect(result.interactive).toBe(false);
-    });
-
-    test('parses -h flag', () => {
-      const result = parseArgs(['-h']);
-      expect(result.help).toBe(true);
-      expect(result.interactive).toBe(false);
-    });
-
-    test('parses --version flag', () => {
-      const result = parseArgs(['--version']);
-      expect(result.version).toBe(true);
-      expect(result.interactive).toBe(false);
-    });
-
-    test('parses -v flag', () => {
-      const result = parseArgs(['-v']);
-      expect(result.version).toBe(true);
-      expect(result.interactive).toBe(false);
-    });
-
-    test('parses help with command name for command-specific help', () => {
-      const result = parseArgs(['--help', 'tcp']);
-      expect(result.help).toBe(false);
-      expect(result.helpCommand).toBe('tcp');
-      expect(result.interactive).toBe(false);
-    });
-  });
-
-  describe('output flags', () => {
-    test('parses --json flag', () => {
-      const result = parseArgs(['--json']);
-      expect(result.json).toBe(true);
-    });
-
-    test('parses -j flag', () => {
-      const result = parseArgs(['-j']);
-      expect(result.json).toBe(true);
-    });
-
-    test('parses --quiet flag', () => {
-      const result = parseArgs(['--quiet']);
-      expect(result.quiet).toBe(true);
-    });
-
-    test('parses -q flag', () => {
-      const result = parseArgs(['-q']);
-      expect(result.quiet).toBe(true);
-    });
-
-    test('parses --no-color flag', () => {
-      const result = parseArgs(['--no-color']);
-      expect(result.noColor).toBe(true);
-    });
-  });
-
-  describe('commands', () => {
-    test('parses --public-ip command', () => {
-      const result = parseArgs(['--public-ip']);
-      expect(result.command).toBe('public-ip');
-      expect(result.interactive).toBe(false);
-    });
-
-    test('parses --dns command with host', () => {
-      const result = parseArgs(['--dns', 'example.com']);
-      expect(result.command).toBe('dns');
-      expect(result.host).toBe('example.com');
-      expect(result.interactive).toBe(false);
-    });
-
-    test('parses --tcp command with host and port', () => {
-      const result = parseArgs(['--tcp', 'example.com', '443']);
-      expect(result.command).toBe('tcp');
-      expect(result.host).toBe('example.com');
-      expect(result.port).toBe(443);
-      expect(result.interactive).toBe(false);
-    });
-
-    test('parses --http command with URL', () => {
-      const result = parseArgs(['--http', 'https://example.com']);
-      expect(result.command).toBe('http');
-      expect(result.url).toBe('https://example.com');
-      expect(result.interactive).toBe(false);
-    });
-
-    test('parses --listening command', () => {
-      const result = parseArgs(['--listening']);
-      expect(result.command).toBe('listening');
-      expect(result.interactive).toBe(false);
-    });
-
-    test('parses --doctor command with host', () => {
-      const result = parseArgs(['--doctor', 'example.com']);
-      expect(result.command).toBe('doctor');
-      expect(result.host).toBe('example.com');
-      expect(result.interactive).toBe(false);
-    });
-
-    test('parses --ports option', () => {
-      const result = parseArgs(['--ports', '80,443']);
-      expect(result.ports).toBe('80,443');
-    });
-
-    test('parses -p option for port', () => {
-      const result = parseArgs(['-p', '8080']);
-      expect(result.port).toBe(8080);
-    });
-  });
-
-  describe('legacy JSON commands', () => {
-    test('parses --tcp-json command', () => {
-      const result = parseArgs(['--tcp-json', 'example.com', '443']);
-      expect(result.command).toBe('tcp');
-      expect(result.json).toBe(true);
-      expect(result.host).toBe('example.com');
-      expect(result.port).toBe(443);
-    });
-
-    test('parses --http-json command', () => {
-      const result = parseArgs(['--http-json', 'https://example.com']);
-      expect(result.command).toBe('http');
-      expect(result.json).toBe(true);
-      expect(result.url).toBe('https://example.com');
-    });
-
-    test('parses --listening-json command', () => {
-      const result = parseArgs(['--listening-json']);
-      expect(result.command).toBe('listening');
-      expect(result.json).toBe(true);
-    });
-
-    test('parses --doctor-json command', () => {
-      const result = parseArgs(['--doctor-json', 'example.com']);
-      expect(result.command).toBe('doctor');
-      expect(result.json).toBe(true);
-      expect(result.host).toBe('example.com');
-    });
-  });
-
-  describe('default values', () => {
-    test('returns default values for empty args', () => {
+  describe('defaults', () => {
+    test('empty args enter interactive mode', () => {
       const result = parseArgs([]);
       expect(result.interactive).toBe(true);
-      expect(result.help).toBe(false);
-      expect(result.version).toBe(false);
-      expect(result.json).toBe(false);
-      expect(result.quiet).toBe(false);
-      expect(result.command).toBeNull();
-      expect(result.host).toBeNull();
-      expect(result.port).toBeNull();
+      expect(result.command).toBe('interactive');
     });
   });
 
-  describe('edge cases', () => {
-    test('handles missing host for --dns', () => {
-      const result = parseArgs(['--dns']);
-      expect(result.command).toBe('dns');
-      expect(result.host).toBeNull();
+  describe('help and version', () => {
+    test('parses --help', () => {
+      const result = parseArgs(['--help']);
+      expect(result.help).toBe(true);
     });
 
-    test('handles missing URL for --http', () => {
-      const result = parseArgs(['--http']);
-      expect(result.command).toBe('http');
-      expect(result.url).toBeNull();
+    test('parses -h with command', () => {
+      const result = parseArgs(['-h', 'tcp']);
+      expect(result.help).toBe(true);
+      expect(result.helpCommand).toBe('tcp');
     });
 
-    test('handles combined flags', () => {
-      const result = parseArgs(['--json', '--quiet', '--dns', 'example.com']);
+    test('parses help subcommand', () => {
+      const result = parseArgs(['help', 'doctor']);
+      expect(result.help).toBe(true);
+      expect(result.helpCommand).toBe('doctor');
+    });
+
+    test('parses --version and -v', () => {
+      expect(parseArgs(['--version']).version).toBe(true);
+      expect(parseArgs(['-v']).version).toBe(true);
+    });
+  });
+
+  describe('subcommands', () => {
+    test('parses public-ip', () => {
+      const result = parseArgs(['public-ip', '--json']);
+      expect(result.command).toBe('public-ip');
       expect(result.json).toBe(true);
-      expect(result.quiet).toBe(true);
+      expect(result.interactive).toBe(false);
+    });
+
+    test('parses dns with type', () => {
+      const result = parseArgs(['dns', 'example.com', '--type', 'MX', '-q']);
       expect(result.command).toBe('dns');
       expect(result.host).toBe('example.com');
+      expect(result.type).toBe('MX');
+      expect(result.quiet).toBe(true);
+    });
+
+    test('parses ping with count', () => {
+      const result = parseArgs(['ping', '1.1.1.1', '-c', '4']);
+      expect(result.command).toBe('ping');
+      expect(result.host).toBe('1.1.1.1');
+      expect(result.count).toBe(4);
+    });
+
+    test('parses traceroute', () => {
+      const result = parseArgs(['traceroute', 'github.com']);
+      expect(result.command).toBe('traceroute');
+      expect(result.host).toBe('github.com');
+    });
+
+    test('parses tcp with port list', () => {
+      const result = parseArgs(['tcp', 'example.com', '80,443,3000-3010', '--json']);
+      expect(result.command).toBe('tcp');
+      expect(result.host).toBe('example.com');
+      expect(result.ports).toBe('80,443,3000-3010');
+      expect(result.json).toBe(true);
+    });
+
+    test('parses http with method', () => {
+      const result = parseArgs(['http', 'https://example.com', '--method', 'GET']);
+      expect(result.command).toBe('http');
+      expect(result.url).toBe('https://example.com');
+      expect(result.method).toBe('GET');
+    });
+
+    test('parses listening with port filter', () => {
+      const result = parseArgs(['listening', '--port', '3000']);
+      expect(result.command).toBe('listening');
+      expect(result.port).toBe(3000);
+    });
+
+    test('parses doctor with ports and export', () => {
+      const result = parseArgs(['doctor', 'example.com', '--ports', '80,443', '--export']);
+      expect(result.command).toBe('doctor');
+      expect(result.host).toBe('example.com');
+      expect(result.ports).toBe('80,443');
+      expect(result.exportReport).toBe(true);
+    });
+
+    test('parses interfaces --system', () => {
+      const result = parseArgs(['interfaces', '--system']);
+      expect(result.command).toBe('interfaces');
+      expect(result.system).toBe(true);
+    });
+
+    test('parses interactive', () => {
+      const result = parseArgs(['interactive']);
+      expect(result.command).toBe('interactive');
+      expect(result.interactive).toBe(true);
+    });
+  });
+
+  describe('favorites', () => {
+    test('defaults to list', () => {
+      const result = parseArgs(['favorites']);
+      expect(result.command).toBe('favorites');
+      expect(result.favoritesAction).toBe('list');
+    });
+
+    test('parses add with positionals', () => {
+      const result = parseArgs(['favorites', 'add', 'tcp', 'github.com', '443', '--label', 'GH']);
+      expect(result.favoritesAction).toBe('add');
+      expect(result.favoriteType).toBe('tcp');
+      expect(result.favoriteTarget).toBe('github.com');
+      expect(result.favoritePort).toBe(443);
+      expect(result.favoriteLabel).toBe('GH');
+    });
+
+    test('parses remove and run by index', () => {
+      expect(parseArgs(['favorites', 'remove', '2']).favoriteIndex).toBe(2);
+      expect(parseArgs(['favorites', 'run', '1']).favoriteIndex).toBe(1);
+    });
+  });
+
+  describe('errors', () => {
+    test('unknown command', () => {
+      const result = parseArgs(['foobar']);
+      expect(result.error).toMatch(/未知命令/);
+    });
+
+    test('legacy flag style rejected', () => {
+      const result = parseArgs(['--dns', 'example.com']);
+      expect(result.error).toMatch(/未知选项/);
+    });
+
+    test('unknown option on command', () => {
+      const result = parseArgs(['dns', 'example.com', '--nope']);
+      expect(result.error).toMatch(/未知选项/);
     });
   });
 });

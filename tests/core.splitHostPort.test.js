@@ -1,6 +1,6 @@
 'use strict';
 
-const { splitHostPort } = require('../src/core');
+const { splitHostPort } = require('../src/lib');
 
 describe('splitHostPort', () => {
   test('parses IPv4 with port', () => {

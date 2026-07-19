@@ -3,13 +3,45 @@
 const ui = require('./ui');
 const { parseArgs } = require('./cli/args');
 const { showHelp, showCommandHelp } = require('./cli/help');
-const { runPublicIp, runDns, runTcp, runHttp, runListening, runDoctor } = require('./commands');
+const {
+  runPublicIp,
+  runDns,
+  runTcp,
+  runHttp,
+  runListening,
+  runDoctor,
+  runPing,
+  runTraceroute,
+  runInterfaces,
+  runFavoritesList,
+  runFavoritesAdd,
+  runFavoritesRemove,
+  runFavoritesRun
+} = require('./commands');
 const { interactiveMenu } = require('./interactive/menu');
 
 const VERSION = require('../package.json').version;
 
 /**
- * Main entry point for the CLI
+ * Apply exit code from a command result.
+ * @param {{ok?: boolean}|null|undefined} result
+ */
+function applyExit(result) {
+  if (result && result.ok === false) process.exitCode = 1;
+}
+
+/**
+ * Fail fast with message and example.
+ * @param {string} message
+ * @param {string} example
+ */
+function failUsage(message, example) {
+  console.log(ui.err(message) + ui.dim(`\n示例: ${example}`));
+  process.exitCode = 1;
+}
+
+/**
+ * Main CLI entry.
  */
 async function main() {
   const args = process.argv.slice(2);
@@ -17,13 +49,9 @@ async function main() {
 
   if (process.env.NO_COLOR || opts.noColor) ui.setColorEnabled(false);
 
-  if (opts.help) {
-    showHelp();
-    return;
-  }
-
-  if (opts.helpCommand) {
-    showCommandHelp(opts.helpCommand);
+  if (opts.error) {
+    console.log(ui.err(opts.error));
+    process.exitCode = 1;
     return;
   }
 
@@ -32,51 +60,116 @@ async function main() {
     return;
   }
 
-  // Non-interactive mode
-  if (!opts.interactive) {
-    const commandOpts = { jsonMode: opts.json, quiet: opts.quiet };
-
-    switch (opts.command) {
-      case 'public-ip':
-        return runPublicIp(commandOpts);
-      case 'dns':
-        if (!opts.host) {
-          console.log(ui.err('请指定域名') + ui.dim('\n用法: netq --dns <域名>'));
-          process.exitCode = 1;
-          return;
-        }
-        return runDns(opts.host, commandOpts);
-      case 'tcp':
-        if (!opts.host || !Number.isFinite(opts.port) || opts.port < 1 || opts.port > 65535) {
-          console.log(ui.err('请指定主机和端口') + ui.dim('\n用法: netq --tcp <主机> <端口>'));
-          process.exitCode = 1;
-          return;
-        }
-        return runTcp(opts.host, opts.port, commandOpts);
-      case 'http':
-        if (!opts.url) {
-          console.log(ui.err('请指定 URL') + ui.dim('\n用法: netq --http <URL>'));
-          process.exitCode = 1;
-          return;
-        }
-        return runHttp(opts.url, commandOpts);
-      case 'listening':
-        return runListening({ ...commandOpts, filterPort: opts.port });
-      case 'doctor':
-        if (!opts.host) {
-          console.log(ui.err('请指定目标主机') + ui.dim('\n用法: netq --doctor <主机>'));
-          process.exitCode = 1;
-          return;
-        }
-        return runDoctor(opts.host, { ...commandOpts, portsInput: opts.ports });
-      default:
-        showHelp();
+  if (opts.help) {
+    if (opts.helpCommand) {
+      const ok = showCommandHelp(opts.helpCommand);
+      if (!ok) process.exitCode = 1;
+    } else {
+      showHelp();
     }
     return;
   }
 
-  // Interactive mode
-  await interactiveMenu();
+  if (opts.interactive || opts.command === 'interactive') {
+    await interactiveMenu();
+    return;
+  }
+
+  const common = { jsonMode: opts.json, quiet: opts.quiet };
+
+  switch (opts.command) {
+    case 'public-ip':
+      return applyExit(await runPublicIp(common));
+
+    case 'interfaces':
+      return applyExit(await runInterfaces({ ...common, system: opts.system }));
+
+    case 'dns':
+      if (!opts.host) return failUsage('请指定主机', 'netq dns github.com');
+      return applyExit(await runDns(opts.host, { ...common, type: opts.type }));
+
+    case 'ping':
+      if (!opts.host) return failUsage('请指定主机', 'netq ping 1.1.1.1');
+      return applyExit(await runPing(opts.host, { ...common, count: opts.count }));
+
+    case 'traceroute':
+      if (!opts.host) return failUsage('请指定主机', 'netq traceroute github.com');
+      return applyExit(await runTraceroute(opts.host, common));
+
+    case 'tcp':
+      if (!opts.host || !opts.ports) {
+        return failUsage('请指定主机和端口列表', 'netq tcp github.com 443');
+      }
+      return applyExit(await runTcp(opts.host, opts.ports, common));
+
+    case 'http':
+      if (!opts.url) return failUsage('请指定 URL', 'netq http https://github.com');
+      return applyExit(await runHttp(opts.url, { ...common, method: opts.method || 'HEAD' }));
+
+    case 'listening':
+      return applyExit(await runListening({ ...common, filterPort: opts.port }));
+
+    case 'doctor':
+      if (!opts.host) return failUsage('请指定目标主机', 'netq doctor github.com');
+      return applyExit(
+        await runDoctor(opts.host, {
+          ...common,
+          portsInput: opts.ports,
+          exportReport: opts.exportReport
+        })
+      );
+
+    case 'favorites':
+      return applyExit(await dispatchFavorites(opts, common));
+
+    default:
+      showHelp();
+      process.exitCode = 1;
+  }
+}
+
+/**
+ * Dispatch favorites sub-actions.
+ * @param {Object} opts
+ * @param {Object} common
+ */
+async function dispatchFavorites(opts, common) {
+  switch (opts.favoritesAction) {
+    case 'list':
+      return runFavoritesList(common);
+    case 'add':
+      if (!opts.favoriteType || !opts.favoriteTarget) {
+        failUsage(
+          '用法: netq favorites add <type> <target> [port] [--label <标签>]',
+          'netq favorites add ping 1.1.1.1 --label "CF"'
+        );
+        return { ok: false };
+      }
+      return runFavoritesAdd(
+        {
+          type: opts.favoriteType,
+          target: opts.favoriteTarget,
+          port: opts.favoritePort ?? opts.port,
+          label: opts.favoriteLabel
+        },
+        common
+      );
+    case 'remove':
+      if (opts.favoriteIndex === null || opts.favoriteIndex === undefined) {
+        failUsage('用法: netq favorites remove <index>', 'netq favorites remove 1');
+        return { ok: false };
+      }
+      return runFavoritesRemove(opts.favoriteIndex, common);
+    case 'run':
+      if (opts.favoriteIndex === null || opts.favoriteIndex === undefined) {
+        failUsage('用法: netq favorites run <index>', 'netq favorites run 1');
+        return { ok: false };
+      }
+      return runFavoritesRun(opts.favoriteIndex, common);
+    default:
+      failUsage('用法: netq favorites list|add|remove|run', 'netq favorites list');
+      return { ok: false };
+  }
 }
 
 module.exports = { main };

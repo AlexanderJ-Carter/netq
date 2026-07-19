@@ -1,11 +1,11 @@
 {
   "name": "@alexanderjcarter/netq",
-  "version": "0.3.2",
+  "version": "1.0.0",
   "description": "netq：面向开发/运维/普通用户的轻量交互式网络排查 CLI",
   "license": "MIT",
   "author": "AlexanderJ-Carter <121274570+AlexanderJ-Carter@users.noreply.github.com>",
   "type": "commonjs",
-  "types": "./src/core.d.ts",
+  "types": "./src/lib/index.d.ts",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/AlexanderJ-Carter/netq.git"
@@ -16,8 +16,9 @@
   "homepage": "https://alexanderj-carter.github.io/netq/",
   "sideEffects": false,
   "exports": {
-    ".": "./src/core.js",
-    "./core": "./src/core.js"
+    ".": "./src/lib/index.js",
+    "./core": "./src/lib/index.js",
+    "./lib": "./src/lib/index.js"
   },
   "bin": {
     "netq": "bin/netq.js"

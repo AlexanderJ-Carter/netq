@@ -15,11 +15,13 @@ function colorize(fn, text) {
 }
 
 function brand() {
-  return colorize(chalk.bold.cyan, 'netq') + colorize(chalk.gray, ' · ') + colorize(chalk.gray, '交互式网络排查');
+  return (
+    colorize(chalk.bold.green, 'netq') + colorize(chalk.gray, ' · ') + colorize(chalk.gray, '交互式网络排查')
+  );
 }
 
 function title(text) {
-  return colorize(chalk.bold.cyan, text);
+  return colorize(chalk.bold.green, text);
 }
 
 function ok(text) {
@@ -39,7 +41,7 @@ function dim(text) {
 }
 
 function info(text) {
-  return colorize(chalk.cyan, text);
+  return colorize(chalk.green, text);
 }
 
 function termWidth() {
@@ -63,7 +65,7 @@ function kvTable(rows, { head = ['字段', '值'] } = {}) {
   const right = Math.max(30, w - left - 6);
   const t = new Table({
     head,
-    style: { head: ['cyan'] },
+    style: { head: ['green'] },
     wordWrap: true,
     colWidths: [left, right]
   });
@@ -74,7 +76,7 @@ function kvTable(rows, { head = ['字段', '值'] } = {}) {
 function listTable(head, rows) {
   const t = new Table({
     head,
-    style: { head: ['cyan'] },
+    style: { head: ['green'] },
     wordWrap: true
   });
   for (const r of rows) t.push(r);

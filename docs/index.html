@@ -3,437 +3,707 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <meta name="color-scheme" content="light dark" />
+    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#0d7a4f" />
     <title>netq · 交互式网络排查 CLI</title>
     <meta
       name="description"
-      content="netq：面向开发/运维/普通用户的轻量交互式网络排查 CLI（菜单式，一键公网IP/DNS/Ping/Tracert/端口/HTTP）"
+      content="netq：轻量网络排查 CLI。菜单式交互 + 子命令脚本接口，一键 DNS / Ping / TCP / HTTP / doctor。"
+    />
+    <meta property="og:title" content="netq · 交互式网络排查 CLI" />
+    <meta
+      property="og:description"
+      content="菜单交互与子命令脚本同一套能力。不用背 netstat / ping 参数。"
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://alexanderj-carter.github.io/netq/" />
+    <meta name="twitter:card" content="summary" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230e1612'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='monospace' font-size='14' font-weight='700' fill='%2312a86b'%3Enq%3C/text%3E%3C/svg%3E"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Sora:wght@500;600;700;800&display=swap"
+      rel="stylesheet"
     />
     <style>
       :root {
-        --bg: #0b0d12;
-        --panel: #111527;
-        --text: #e8ecff;
-        --muted: rgba(232, 236, 255, 0.72);
-        --line: rgba(232, 236, 255, 0.12);
-        --accent: #4fe3c1;
-        --accent2: #7aa7ff;
-        --warn: #ffd166;
-        --danger: #ff5c7a;
-        --shadow: 0 12px 40px rgba(0, 0, 0, 0.42);
-        --radius: 18px;
-      }
-
-      @media (prefers-color-scheme: light) {
-        :root {
-          --bg: #f6f7fb;
-          --panel: #ffffff;
-          --text: #101427;
-          --muted: rgba(16, 20, 39, 0.7);
-          --line: rgba(16, 20, 39, 0.12);
-          --accent: #008f7a;
-          --accent2: #2f6bff;
-          --warn: #9a6a00;
-          --danger: #c11d3a;
-          --shadow: 0 12px 40px rgba(16, 20, 39, 0.12);
-        }
+        --ink: #121a16;
+        --ink-soft: #2a3830;
+        --muted: #5c6b62;
+        --paper: #e8efe8;
+        --paper-deep: #d5e0d6;
+        --panel: #f4f8f4;
+        --line: rgba(18, 26, 22, 0.12);
+        --signal: #0d7a4f;
+        --signal-bright: #12a86b;
+        --terminal: #0e1612;
+        --terminal-fg: #c8e6c9;
+        --terminal-dim: #6f8f78;
+        --warn: #b8860b;
+        --radius: 6px;
+        --max: 1120px;
+        --font-display: "Sora", "PingFang SC", "Microsoft YaHei", sans-serif;
+        --font-mono: "IBM Plex Mono", "Cascadia Code", Consolas, monospace;
       }
 
       * {
         box-sizing: border-box;
       }
 
-      html,
-      body {
-        height: 100%;
+      html {
+        scroll-behavior: smooth;
       }
 
       body {
         margin: 0;
-        color: var(--text);
-        background: radial-gradient(1000px 700px at 15% 10%, rgba(79, 227, 193, 0.18), transparent 55%),
-          radial-gradient(900px 650px at 85% 15%, rgba(122, 167, 255, 0.18), transparent 60%),
-          radial-gradient(1100px 900px at 50% 95%, rgba(255, 92, 122, 0.12), transparent 60%),
-          var(--bg);
-        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans SC", "PingFang SC",
-          "Microsoft Yahei", Arial, sans-serif;
-        line-height: 1.5;
+        color: var(--ink);
+        background-color: var(--paper);
+        background-image:
+          linear-gradient(rgba(18, 26, 22, 0.035) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(18, 26, 22, 0.035) 1px, transparent 1px),
+          radial-gradient(900px 520px at 8% -10%, rgba(13, 122, 79, 0.14), transparent 58%),
+          radial-gradient(700px 480px at 92% 8%, rgba(184, 134, 11, 0.1), transparent 55%);
+        background-size: 48px 48px, 48px 48px, auto, auto;
+        font-family: var(--font-display);
+        line-height: 1.55;
+        -webkit-font-smoothing: antialiased;
       }
 
       a {
-        color: inherit;
+        color: var(--signal);
         text-decoration: none;
-        border-bottom: 1px solid rgba(79, 227, 193, 0.35);
       }
       a:hover {
-        border-bottom-color: rgba(79, 227, 193, 0.7);
+        color: var(--signal-bright);
       }
 
-      .wrap {
-        max-width: 1040px;
-        margin: 0 auto;
-        padding: 44px 18px 72px;
-      }
-
-      header {
-        display: grid;
-        grid-template-columns: 1.15fr 0.85fr;
-        gap: 20px;
-        align-items: start;
-        margin-bottom: 22px;
-      }
-
-      @media (max-width: 900px) {
-        header {
-          grid-template-columns: 1fr;
-        }
-      }
-
-      .hero {
-        padding: 26px 24px;
-        background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
-        border: 1px solid var(--line);
-        border-radius: var(--radius);
-        box-shadow: var(--shadow);
-      }
-
-      .badge {
-        display: inline-flex;
-        gap: 10px;
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        display: flex;
         align-items: center;
-        padding: 8px 12px;
-        border-radius: 999px;
-        border: 1px solid var(--line);
-        background: rgba(255, 255, 255, 0.04);
-        color: var(--muted);
+        justify-content: space-between;
+        gap: 16px;
+        padding: 14px 28px;
+        background: rgba(232, 239, 232, 0.88);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid var(--line);
+      }
+
+      .topbar-brand {
+        font-family: var(--font-mono);
+        font-weight: 600;
+        font-size: 15px;
+        letter-spacing: 0.04em;
+        color: var(--ink);
+      }
+
+      .topbar-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 18px;
         font-size: 13px;
+        font-weight: 600;
+      }
+      .topbar-links a {
+        color: var(--ink-soft);
+      }
+      .topbar-links a:hover {
+        color: var(--signal);
       }
 
-      .dot {
-        width: 9px;
-        height: 9px;
-        border-radius: 99px;
-        background: var(--accent);
-        box-shadow: 0 0 0 4px rgba(79, 227, 193, 0.18);
+      /* Full-bleed hero: one composition */
+      .hero {
+        position: relative;
+        min-height: min(92vh, 860px);
+        display: grid;
+        grid-template-rows: 1fr auto;
+        overflow: hidden;
+        border-bottom: 1px solid var(--line);
       }
 
-      h1 {
-        margin: 14px 0 10px;
-        font-size: 44px;
-        letter-spacing: -0.02em;
-        line-height: 1.12;
+      .hero-stage {
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(ellipse 80% 60% at 70% 40%, rgba(13, 122, 79, 0.18), transparent 60%),
+          linear-gradient(160deg, #0b1410 0%, #15241c 45%, #0e1612 100%);
       }
 
-      @media (max-width: 520px) {
-        h1 {
-          font-size: 36px;
-        }
+      .hero-stage::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        opacity: 0.22;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cpath d='M0 60h120M60 0v120' stroke='%2312a86b' stroke-opacity='.25' stroke-width='1'/%3E%3Ccircle cx='60' cy='60' r='18' fill='none' stroke='%2312a86b' stroke-opacity='.2'/%3E%3C/svg%3E");
+        animation: gridDrift 28s linear infinite;
       }
 
-      .lead {
-        margin: 0 0 18px;
-        color: var(--muted);
-        font-size: 16px;
+      .hero-stage::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(90deg, rgba(11, 20, 16, 0.92) 0%, rgba(11, 20, 16, 0.55) 42%, rgba(11, 20, 16, 0.2) 100%);
+      }
+
+      .hero-content {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 72px 28px 40px;
+        max-width: var(--max);
+        width: 100%;
+        margin: 0 auto;
+      }
+
+      .brand {
+        margin: 0;
+        font-family: var(--font-mono);
+        font-size: clamp(4.2rem, 12vw, 8.5rem);
+        font-weight: 600;
+        letter-spacing: -0.06em;
+        line-height: 0.9;
+        color: #f2faf4;
+        text-shadow: 0 0 40px rgba(18, 168, 107, 0.25);
+        animation: riseIn 0.7s ease both;
+      }
+
+      .headline {
+        margin: 22px 0 0;
+        max-width: 16ch;
+        font-size: clamp(1.35rem, 2.6vw, 1.85rem);
+        font-weight: 700;
+        letter-spacing: -0.03em;
+        line-height: 1.25;
+        color: #e8f5eb;
+        animation: riseIn 0.7s ease 0.08s both;
+      }
+
+      .support {
+        margin: 14px 0 0;
+        max-width: 36ch;
+        font-size: 1.02rem;
+        font-weight: 500;
+        color: rgba(200, 230, 201, 0.78);
+        animation: riseIn 0.7s ease 0.16s both;
       }
 
       .cta {
         display: flex;
         flex-wrap: wrap;
         gap: 10px;
-        margin-top: 16px;
+        margin-top: 28px;
+        animation: riseIn 0.7s ease 0.24s both;
       }
 
       .btn {
         display: inline-flex;
         align-items: center;
-        gap: 10px;
-        padding: 10px 14px;
-        border-radius: 12px;
-        border: 1px solid var(--line);
-        background: rgba(255, 255, 255, 0.04);
-        color: var(--text);
+        justify-content: center;
+        gap: 8px;
+        min-height: 44px;
+        padding: 0 18px;
+        border: 1px solid transparent;
+        border-radius: var(--radius);
+        font-family: var(--font-display);
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: 0.01em;
         cursor: pointer;
-        user-select: none;
+        transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
       }
-
-      .btn.primary {
-        border-color: rgba(79, 227, 193, 0.38);
-        background: linear-gradient(135deg, rgba(79, 227, 193, 0.22), rgba(122, 167, 255, 0.10));
-      }
-
       .btn:hover {
-        transform: translateY(-1px);
+        transform: translateY(-2px);
+      }
+      .btn:active {
+        transform: translateY(0);
       }
 
-      .cards {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 12px;
-        margin-top: 14px;
+      .btn-primary {
+        background: var(--signal-bright);
+        color: #04140c;
+      }
+      .btn-primary:hover {
+        background: #2bc484;
+        color: #04140c;
       }
 
-      @media (max-width: 900px) {
-        .cards {
-          grid-template-columns: 1fr;
-        }
+      .btn-ghost {
+        background: transparent;
+        border-color: rgba(200, 230, 201, 0.35);
+        color: #e8f5eb;
+      }
+      .btn-ghost:hover {
+        border-color: rgba(200, 230, 201, 0.7);
+        color: #fff;
       }
 
-      .card {
-        padding: 16px 16px 14px;
-        border: 1px solid var(--line);
-        border-radius: 16px;
-        background: rgba(17, 21, 39, 0.40);
+      .hero-terminal {
+        position: relative;
+        z-index: 2;
+        width: min(100%, var(--max));
+        margin: 0 auto;
+        padding: 0 28px 36px;
+        animation: riseIn 0.85s ease 0.28s both;
       }
-      @media (prefers-color-scheme: light) {
-        .card {
-          background: rgba(255, 255, 255, 0.74);
-        }
+
+      .term {
+        border: 1px solid rgba(200, 230, 201, 0.18);
+        border-radius: 10px 10px 0 0;
+        background: var(--terminal);
+        box-shadow: 0 -20px 80px rgba(0, 0, 0, 0.35);
+        overflow: hidden;
       }
-      .card h3 {
-        margin: 0 0 6px;
-        font-size: 14px;
-        letter-spacing: 0.02em;
-        text-transform: uppercase;
-        color: var(--muted);
+
+      .term-bar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px;
+        border-bottom: 1px solid rgba(200, 230, 201, 0.1);
+        font-family: var(--font-mono);
+        font-size: 12px;
+        color: var(--terminal-dim);
       }
-      .card p {
+
+      .term-bar span.dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: rgba(200, 230, 201, 0.25);
+      }
+      .term-bar span.dot:first-child {
+        background: var(--signal-bright);
+      }
+
+      .term-body {
         margin: 0;
-        font-size: 14px;
+        padding: 18px 18px 22px;
+        font-family: var(--font-mono);
+        font-size: 13px;
+        line-height: 1.65;
+        color: var(--terminal-fg);
+        white-space: pre-wrap;
+        overflow-x: auto;
       }
 
-      .panel {
-        padding: 18px 18px 16px;
+      .term-body .dim {
+        color: var(--terminal-dim);
+      }
+      .term-body .ok {
+        color: #7dde9a;
+      }
+      .term-body .prompt {
+        color: var(--signal-bright);
+      }
+      .term-body .cursor {
+        display: inline-block;
+        width: 0.55em;
+        height: 1.05em;
+        margin-left: 2px;
+        vertical-align: -0.15em;
+        background: var(--signal-bright);
+        animation: blink 1.05s steps(1) infinite;
+      }
+
+      .wrap {
+        max-width: var(--max);
+        margin: 0 auto;
+        padding: 0 28px 80px;
+      }
+
+      section {
+        padding: 64px 0 0;
+      }
+
+      .section-label {
+        margin: 0 0 8px;
+        font-family: var(--font-mono);
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--signal);
+      }
+
+      .section-title {
+        margin: 0 0 12px;
+        font-size: clamp(1.6rem, 3vw, 2.1rem);
+        font-weight: 700;
+        letter-spacing: -0.03em;
+        line-height: 1.2;
+      }
+
+      .section-lead {
+        margin: 0 0 28px;
+        max-width: 48ch;
+        color: var(--muted);
+        font-size: 1rem;
+        font-weight: 500;
+      }
+
+      .install-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: stretch;
+        gap: 10px;
+      }
+
+      .install-code {
+        flex: 1 1 280px;
+        margin: 0;
+        padding: 14px 16px;
         border: 1px solid var(--line);
         border-radius: var(--radius);
-        background: rgba(17, 21, 39, 0.35);
-        box-shadow: var(--shadow);
-      }
-      @media (prefers-color-scheme: light) {
-        .panel {
-          background: rgba(255, 255, 255, 0.7);
-        }
+        background: var(--panel);
+        font-family: var(--font-mono);
+        font-size: 14px;
+        color: var(--ink);
       }
 
-      .panel h2 {
-        margin: 0 0 12px;
-        font-size: 16px;
-        letter-spacing: 0.01em;
+      .btn-solid {
+        background: var(--ink);
+        color: var(--paper);
+        border-color: var(--ink);
+      }
+      .btn-solid:hover {
+        background: var(--ink-soft);
+        color: #fff;
       }
 
-      pre {
-        margin: 0;
-        padding: 14px 14px;
-        border-radius: 14px;
-        border: 1px solid var(--line);
-        background: rgba(0, 0, 0, 0.35);
-        overflow: auto;
-      }
-      @media (prefers-color-scheme: light) {
-        pre {
-          background: rgba(16, 20, 39, 0.06);
-        }
-      }
-      code {
-        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-        font-size: 13px;
-      }
-
-      .grid {
+      .cmd-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 14px;
-        margin-top: 14px;
       }
-      @media (max-width: 900px) {
-        .grid {
+
+      @media (max-width: 800px) {
+        .cmd-grid {
           grid-template-columns: 1fr;
+        }
+        .topbar {
+          padding: 12px 18px;
+        }
+        .hero {
+          min-height: auto;
+        }
+        .hero-content {
+          padding-top: 48px;
+          padding-bottom: 24px;
+        }
+        .hero-content,
+        .hero-terminal,
+        .wrap {
+          padding-left: 18px;
+          padding-right: 18px;
+        }
+        .headline {
+          max-width: none;
         }
       }
 
-      .kvs {
-        display: grid;
-        gap: 10px;
-        margin-top: 8px;
-      }
-      .kv {
-        display: grid;
-        grid-template-columns: 140px 1fr;
-        gap: 10px;
-        padding: 10px 12px;
+      .cmd-block {
         border: 1px solid var(--line);
-        border-radius: 14px;
-        background: rgba(255, 255, 255, 0.03);
+        border-radius: var(--radius);
+        background: var(--panel);
+        overflow: hidden;
       }
-      @media (prefers-color-scheme: light) {
-        .kv {
-          background: rgba(16, 20, 39, 0.03);
+
+      .cmd-block h3 {
+        margin: 0;
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--line);
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--ink-soft);
+      }
+
+      .cmd-block pre {
+        margin: 0;
+        padding: 14px;
+        overflow: auto;
+        font-family: var(--font-mono);
+        font-size: 12.5px;
+        line-height: 1.7;
+        color: var(--ink);
+        background: transparent;
+      }
+
+      .feature-list {
+        display: grid;
+        gap: 0;
+        border-top: 1px solid var(--line);
+      }
+
+      .feature {
+        display: grid;
+        grid-template-columns: 160px 1fr;
+        gap: 16px;
+        padding: 18px 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      @media (max-width: 640px) {
+        .feature {
+          grid-template-columns: 1fr;
+          gap: 4px;
         }
       }
-      .kv b {
-        color: var(--muted);
+
+      .feature dt {
+        margin: 0;
+        font-family: var(--font-mono);
+        font-size: 13px;
         font-weight: 600;
+        color: var(--ink);
+      }
+
+      .feature dd {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.95rem;
+        font-weight: 500;
+      }
+
+      .json-panel {
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--terminal);
+        color: var(--terminal-fg);
+        overflow: hidden;
+      }
+
+      .json-panel pre {
+        margin: 0;
+        padding: 18px;
+        font-family: var(--font-mono);
+        font-size: 12.5px;
+        line-height: 1.65;
+        overflow: auto;
+      }
+
+      .note {
+        margin: 14px 0 0;
+        color: var(--muted);
+        font-size: 0.9rem;
       }
 
       footer {
-        margin-top: 18px;
+        margin-top: 72px;
+        padding-top: 24px;
+        border-top: 1px solid var(--line);
         color: var(--muted);
         font-size: 13px;
       }
-
-      .tiny {
-        color: var(--muted);
-        font-size: 13px;
+      footer p {
+        margin: 0 0 8px;
+      }
+      footer a {
+        color: var(--ink-soft);
+        font-weight: 600;
+      }
+      footer a:hover {
+        color: var(--signal);
       }
 
-      .pill {
-        display: inline-block;
-        padding: 2px 10px;
-        border: 1px solid var(--line);
-        border-radius: 999px;
-        color: var(--muted);
-        font-size: 12px;
-        margin-right: 6px;
+      @keyframes riseIn {
+        from {
+          opacity: 0;
+          transform: translateY(18px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
       }
 
-      .badges {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        align-items: center;
-        margin: 0 0 16px;
-      }
-      .badges img {
-        height: 20px;
-        display: block;
+      @keyframes blink {
+        50% {
+          opacity: 0;
+        }
       }
 
-      .nav {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 12px;
-        align-items: center;
-        padding: 12px 0;
-        border-bottom: 1px solid var(--line);
-        margin-bottom: 24px;
+      @keyframes gridDrift {
+        from {
+          transform: translate3d(0, 0, 0);
+        }
+        to {
+          transform: translate3d(-48px, -48px, 0);
+        }
       }
-      .nav a {
-        border: none;
-        color: var(--muted);
-        font-size: 14px;
-      }
-      .nav a:hover {
-        color: var(--accent);
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation: none !important;
+          transition: none !important;
+        }
       }
     </style>
   </head>
   <body>
-    <div class="wrap">
-      <nav class="nav">
-        <a href="https://github.com/AlexanderJ-Carter/netq">Repository</a>
-        <a href="https://github.com/AlexanderJ-Carter/netq#readme">README</a>
-        <a href="https://github.com/AlexanderJ-Carter/netq/releases">Releases</a>
-        <a href="https://github.com/AlexanderJ-Carter/netq/blob/main/LICENSE">License</a>
+    <header class="topbar">
+      <a class="topbar-brand" href="#">netq</a>
+      <nav class="topbar-links" aria-label="站点导航">
+        <a href="#install">安装</a>
+        <a href="#commands">命令</a>
+        <a href="#features">能力</a>
+        <a href="https://github.com/AlexanderJ-Carter/netq">GitHub</a>
       </nav>
+    </header>
 
-      <header>
-        <div class="hero">
-          <div class="badges">
-            <a href="https://github.com/AlexanderJ-Carter/netq/actions/workflows/ci.yml"><img src="https://github.com/AlexanderJ-Carter/netq/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
-            <a href="https://github.com/AlexanderJ-Carter/netq/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT" /></a>
-            <img src="https://img.shields.io/badge/node-%3E%3D18-green.svg" alt="Node >= 18" />
-            <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg" alt="Platform" />
-          </div>
-          <div class="badge"><span class="dot"></span><span>交互式网络排查 CLI</span><span class="pill">Node.js</span><span class="pill">跨平台</span></div>
-          <h1>netq</h1>
-          <p class="lead">
-            面向开发/运维/普通用户的轻量网络排查工具。核心目标只有一个：<b>把常用网络诊断变成「看得懂的一键结果」</b>，而不是让你背一堆命令参数。
-          </p>
-          <div class="cta">
-            <a class="btn primary" href="https://github.com/AlexanderJ-Carter/netq#readme">查看 README</a>
-            <a class="btn" href="https://github.com/AlexanderJ-Carter/netq">GitHub 仓库</a>
-            <button class="btn" id="copy-install">复制安装命令</button>
-          </div>
-          <div class="cards">
-            <div class="card">
-              <h3>交互模式</h3>
-              <p>菜单式选择，无需记命令；适合临时排查。</p>
-            </div>
-            <div class="card">
-              <h3>非交互模式</h3>
-              <p>一条命令输出结果；适合脚本/CI。</p>
-            </div>
-            <div class="card">
-              <h3>导出报告</h3>
-              <p>结果可导出 TXT/JSON 到本机目录。</p>
-            </div>
-          </div>
+    <section class="hero" aria-label="netq 产品介绍">
+      <div class="hero-stage" aria-hidden="true"></div>
+      <div class="hero-content">
+        <h1 class="brand">netq</h1>
+        <p class="headline">把网络排查做成看得懂的一键结果</p>
+        <p class="support">菜单交互与子命令脚本同一套能力，不用背 netstat / ping 参数。</p>
+        <div class="cta">
+          <button class="btn btn-primary" type="button" id="copy-install">复制安装命令</button>
+          <a class="btn btn-ghost" href="https://github.com/AlexanderJ-Carter/netq#readme">查看 README</a>
         </div>
-
-        <div class="panel">
-          <h2>最常用的 4 条命令</h2>
-          <pre><code>netq
-netq --doctor github.com --ports "80,443,3000-3010"
-netq --tcp github.com 443
-netq --http https://github.com</code></pre>
-          <div class="kvs">
-            <div class="kv"><b>设计原则</b><span>能交互就交互，能一键就一键；输出优先可读，其次可机器读（JSON）。</span></div>
-            <div class="kv"><b>无彩色输出</b><span><code>--no-color</code> 或环境变量 <code>NO_COLOR=1</code></span></div>
+      </div>
+      <div class="hero-terminal" aria-hidden="true">
+        <div class="term">
+          <div class="term-bar">
+            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+            <span style="margin-left: 8px">~/ netq doctor</span>
           </div>
+          <pre class="term-body"><span class="prompt">$</span> netq doctor github.com --ports 80,443
+<span class="dim">快速体检: github.com</span>
+<span class="ok">✔</span> DNS: 20.205.243.166
+<span class="ok">✔</span> Ping: 连通
+<span class="ok">✔</span> TCP: 80,443 开放
+<span class="ok">✔</span> HTTPS: 200 (186ms)
+<span class="prompt">$</span> <span class="cursor"></span></pre>
         </div>
-      </header>
+      </div>
+    </section>
 
-      <section class="grid">
-        <div class="panel">
-          <h2>功能一览</h2>
-          <div class="kvs">
-            <div class="kv"><b>公网 IP</b><span>快速获取对外出口 IP（适合排查 NAT / 代理 / 出口变化）。</span></div>
-            <div class="kv"><b>DNS</b><span>lookup + A/AAAA 基本记录查询；必要时可拓展更多类型。</span></div>
-            <div class="kv"><b>Ping / Traceroute</b><span>连通性与路径定位，快速判断“通不通、卡在哪”。</span></div>
-            <div class="kv"><b>TCP / HTTP</b><span>端口连通性、HTTP 状态码/重定向链，辅助判断服务是否可达。</span></div>
-            <div class="kv"><b>监听端口</b><span>本机 Listening 列表，Windows 可解析 PID 进程名。</span></div>
-          </div>
-        </div>
-
-        <div class="panel">
-          <h2>非交互（JSON）示例</h2>
-          <pre><code># 机器可读输出（失败会退出码=1）
-netq --doctor-json github.com --ports "80,443"
-
-# 输出结构大致如下：
-{
-  "command": "doctor",
-  "timestamp": "2026-03-17T00:00:00.000Z",
-  "host": "github.com",
-  "ports": [80, 443],
-  "checks": { },
-  "ok": true
-}</code></pre>
-          <p class="tiny" style="margin-top: 10px">
-            提示：脚本中可直接用退出码判断成败；或解析 <code>ok</code> 字段。
-          </p>
+    <div class="wrap">
+      <section id="install">
+        <p class="section-label">Install</p>
+        <h2 class="section-title">一分钟上手</h2>
+        <p class="section-lead">全局安装后直接运行 <code style="font-family: var(--font-mono)">netq</code> 进入交互菜单，或使用子命令写进脚本。</p>
+        <div class="install-row">
+          <pre class="install-code" id="install-text">npm i -g @alexanderjcarter/netq</pre>
+          <button class="btn btn-solid" type="button" id="copy-install-2">复制</button>
         </div>
       </section>
 
+      <section id="commands">
+        <p class="section-label">Commands</p>
+        <h2 class="section-title">最常用的几条</h2>
+        <p class="section-lead">交互与脚本共用同一套子命令；失败时退出码为 1。</p>
+        <div class="cmd-grid">
+          <div class="cmd-block">
+            <h3>日常排查</h3>
+            <pre>netq
+netq doctor github.com --ports "80,443"
+netq tcp github.com 443
+netq http https://github.com
+netq ping 1.1.1.1 -c 4</pre>
+          </div>
+          <div class="cmd-block">
+            <h3>脚本 / Agent</h3>
+            <pre>netq doctor github.com --json
+netq dns github.com --type MX --json
+netq listening --port 3000 -q
+netq favorites list
+netq help doctor</pre>
+          </div>
+        </div>
+      </section>
+
+      <section id="features">
+        <p class="section-label">Capabilities</p>
+        <h2 class="section-title">覆盖日常诊断</h2>
+        <p class="section-lead">从出口 IP 到监听端口，一条工具链走完常见排查路径。</p>
+        <dl class="feature-list">
+          <div class="feature">
+            <dt>doctor</dt>
+            <dd>DNS + Ping + TCP + HTTP 并行体检，可导出报告到 ~/.netq/reports/</dd>
+          </div>
+          <div class="feature">
+            <dt>dns / ping</dt>
+            <dd>lookup 与扩展记录类型；系统 ping / traceroute 路径定位</dd>
+          </div>
+          <div class="feature">
+            <dt>tcp / http</dt>
+            <dd>端口列表与范围检测；HTTP 状态码与重定向链</dd>
+          </div>
+          <div class="feature">
+            <dt>listening</dt>
+            <dd>本机 Listening 列表，Windows 可解析进程名</dd>
+          </div>
+          <div class="feature">
+            <dt>favorites</dt>
+            <dd>常用目标增删查跑，配置落在 ~/.netq/config.json</dd>
+          </div>
+        </dl>
+      </section>
+
+      <section id="json">
+        <p class="section-label">Machine output</p>
+        <h2 class="section-title">统一 JSON 结构</h2>
+        <p class="section-lead">所有命令支持 <code style="font-family: var(--font-mono)">--json</code>，方便 CI 与 agent 解析。</p>
+        <div class="json-panel">
+          <pre>{
+  "ok": true,
+  "command": "doctor",
+  "ts": "2026-07-19T00:00:00.000Z",
+  "data": {
+    "host": "github.com",
+    "ports": [80, 443],
+    "checks": {}
+  }
+}</pre>
+        </div>
+        <p class="note">用退出码或 <code style="font-family: var(--font-mono)">ok</code> 字段判断成败即可。</p>
+      </section>
+
       <footer>
-        <p><strong>netq</strong> · MIT License · <a href="https://github.com/AlexanderJ-Carter/netq">GitHub</a> · <a href="https://github.com/AlexanderJ-Carter/netq/blob/main/SECURITY.md">Security</a> · <a href="https://github.com/AlexanderJ-Carter/netq/blob/main/CONTRIBUTING.md">Contributing</a></p>
-        <p class="tiny" style="margin-top: 8px">本页由 GitHub Pages 部署，随 <code>main</code> 分支更新。</p>
+        <p>
+          <strong>netq</strong> · MIT ·
+          <a href="https://github.com/AlexanderJ-Carter/netq">GitHub</a> ·
+          <a href="https://github.com/AlexanderJ-Carter/netq/blob/main/SECURITY.md">Security</a> ·
+          <a href="https://github.com/AlexanderJ-Carter/netq/blob/main/CONTRIBUTING.md">Contributing</a>
+        </p>
+        <p>GitHub Pages 部署，随 main 更新 · v1.0</p>
       </footer>
     </div>
 
     <script>
-      const install = "npm i -g netq";
-      const btn = document.getElementById("copy-install");
-      btn.addEventListener("click", async () => {
+      const install = "npm i -g @alexanderjcarter/netq";
+
+      async function copyInstall(button, idleLabel) {
         try {
           await navigator.clipboard.writeText(install);
-          btn.textContent = "已复制：npm i -g netq";
-          setTimeout(() => (btn.textContent = "复制安装命令"), 1600);
+          button.textContent = "已复制";
+          setTimeout(() => {
+            button.textContent = idleLabel;
+          }, 1600);
         } catch {
-          btn.textContent = "复制失败（请手动复制）";
-          setTimeout(() => (btn.textContent = "复制安装命令"), 1600);
+          button.textContent = "复制失败";
+          setTimeout(() => {
+            button.textContent = idleLabel;
+          }, 1600);
         }
+      }
+
+      document.getElementById("copy-install").addEventListener("click", (e) => {
+        copyInstall(e.currentTarget, "复制安装命令");
+      });
+      document.getElementById("copy-install-2").addEventListener("click", (e) => {
+        copyInstall(e.currentTarget, "复制");
       });
     </script>
   </body>
 </html>
-

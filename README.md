@@ -13,7 +13,10 @@
 
 | 能力                  | 说明                                                       |
 | --------------------- | ---------------------------------------------------------- |
-| **快速体检**          | 公网 IP、DNS、Ping、TCP 端口、HTTP 状态码一键检测          |
+| **快速体检**          | DNS / Ping / TCP / HTTP / TLS 并行检测，输出健康分与建议   |
+| **TLS 证书**          | 有效期、SAN、协议与套件一键查看                            |
+| **DNS 对比**          | 系统 DNS vs Cloudflare / Google，标出不一致                |
+| **Watch 监视**        | 周期性 Ping + TCP，终端刷新连通状态                        |
 | **子命令 CLI**        | `netq dns` / `netq doctor` 等，统一 `--json` 输出          |
 | **常用收藏**          | `favorites` 增删查跑，保存到 `~/.netq/config.json`         |
 | **公网 IP**           | 快速查询出口 IP（基于 api.ipify.org）                      |
@@ -42,12 +45,14 @@ netq interactive
 ```bash
 netq public-ip
 netq dns github.com
-netq dns github.com --type MX
+netq dns-compare github.com
+netq tls github.com
 netq ping 1.1.1.1 -c 4
 netq traceroute github.com
 netq interfaces --system
 netq doctor github.com
 netq doctor github.com --ports "80,443,3000-3010" --json
+netq watch 1.1.1.1 --interval 2000 -c 5
 netq tcp github.com 443
 netq tcp github.com 80,443,3000-3010 --json
 netq http https://github.com --method GET
@@ -68,7 +73,7 @@ netq
 **库用法**：
 
 ```js
-const { dnsLookup, tcpCheck } = require('@alexanderjcarter/netq');
+const { dnsLookup, tcpCheck, tlsCheck, dnsCompare, scoreDoctor } = require('@alexanderjcarter/netq');
 ```
 
 ---
@@ -86,7 +91,7 @@ const { dnsLookup, tcpCheck } = require('@alexanderjcarter/netq');
 }
 ```
 
-失败时进程退出码为 `1`。
+失败时进程退出码为 `1`。`watch` 为终端刷新命令，不支持 `--json`。
 
 ---
 
@@ -94,7 +99,7 @@ const { dnsLookup, tcpCheck } = require('@alexanderjcarter/netq');
 
 - 设计目标：日常能用得上的核心功能，交互与 CLI 共用同一套命令层。
 - `traceroute` 在部分 Linux 发行版需单独安装，缺命令时会提示。
-- 配置：`~/.netq/config.json`（收藏、默认超时、Ping 次数等）。
+- 配置：`~/.netq/config.json`（收藏、默认超时、Ping 次数、`recentHost` 等）。
 - 报告目录：`~/.netq/reports/`。
 
 ---

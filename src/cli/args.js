@@ -5,12 +5,15 @@ const COMMANDS = new Set([
   'public-ip',
   'interfaces',
   'dns',
+  'dns-compare',
   'ping',
   'traceroute',
   'tcp',
   'http',
+  'tls',
   'listening',
   'doctor',
+  'watch',
   'favorites',
   'help'
 ]);
@@ -39,6 +42,7 @@ function parseArgs(args) {
     type: null,
     count: null,
     method: null,
+    interval: null,
     system: false,
     exportReport: false,
     favoritesAction: null,
@@ -156,6 +160,12 @@ function parseArgs(args) {
       i++;
       continue;
     }
+    if (arg === '--interval') {
+      const raw = args[++i];
+      out.interval = raw !== undefined && raw !== null ? Number(raw) : null;
+      i++;
+      continue;
+    }
     if (arg === '--method') {
       out.method = args[++i] || null;
       i++;
@@ -199,8 +209,15 @@ function parseArgs(args) {
       return out;
     }
 
-    // Positional arguments by command
-    if (out.command === 'dns' || out.command === 'ping' || out.command === 'traceroute' || out.command === 'doctor') {
+    if (
+      out.command === 'dns' ||
+      out.command === 'dns-compare' ||
+      out.command === 'ping' ||
+      out.command === 'traceroute' ||
+      out.command === 'doctor' ||
+      out.command === 'tls' ||
+      out.command === 'watch'
+    ) {
       if (!out.host) {
         out.host = arg;
         i++;

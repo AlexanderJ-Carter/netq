@@ -27,6 +27,7 @@ export interface DefaultConfig {
  */
 export interface AppConfig {
   defaults: DefaultConfig;
+  recentHost: string;
   favorites: FavoriteItem[];
 }
 
@@ -79,3 +80,8 @@ export function readConfigSync(): AppConfig;
  * @param cfg - Configuration to write
  */
 export function writeConfigSync(cfg: AppConfig): void;
+
+/**
+ * Persist the last used host for interactive defaults
+ */
+export function rememberHost(host: string): void;

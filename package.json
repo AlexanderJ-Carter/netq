@@ -1,7 +1,7 @@
 {
   "name": "@alexanderjcarter/netq",
-  "version": "1.0.1",
-  "description": "netq：面向开发/运维/普通用户的轻量交互式网络排查 CLI",
+  "version": "1.1.0",
+  "description": "netq：面向开发/运维/普通用户的轻量交互式网络排查 CLI（TLS / DNS 对比 / Watch / 健康分）",
   "license": "MIT",
   "author": "AlexanderJ-Carter <121274570+AlexanderJ-Carter@users.noreply.github.com>",
   "type": "commonjs",

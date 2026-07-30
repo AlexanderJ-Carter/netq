@@ -2,6 +2,18 @@
 
 本项目遵循语义化版本（SemVer）。
 
+### v1.1.0
+
+**Features**
+- 新增 `tls`：TLS 握手与证书有效期 / SAN / 协议套件检测
+- 新增 `dns-compare`：对比系统 DNS 与 Cloudflare / Google 公共解析器
+- 新增 `watch`：周期性 Ping + TCP 监视
+- `doctor` 纳入 TLS，输出健康分（0–100）与建议
+- 交互菜单分组；记住 `recentHost` 作为默认主机
+
+**Docs**
+- 落地页与 README 同步 v1.1 能力
+
 ### v1.0.1
 
 **Bug Fixes**

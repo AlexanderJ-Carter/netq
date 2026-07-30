@@ -8,12 +8,12 @@
     <title>netq · 交互式网络排查 CLI</title>
     <meta
       name="description"
-      content="netq：轻量网络排查 CLI。菜单式交互 + 子命令脚本接口，一键 DNS / Ping / TCP / HTTP / doctor。"
+      content="netq：轻量网络排查 CLI。菜单交互 + 子命令；doctor 健康分、TLS、DNS 对比、Watch。"
     />
     <meta property="og:title" content="netq · 交互式网络排查 CLI" />
     <meta
       property="og:description"
-      content="菜单交互与子命令脚本同一套能力。不用背 netstat / ping 参数。"
+      content="一眼看懂网络问题：体检打分、TLS 证书、DNS 对比、实时监视。"
     />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://alexanderj-carter.github.io/netq/" />
@@ -299,6 +299,9 @@
       .term-body .ok {
         color: #7dde9a;
       }
+      .term-body .warn {
+        color: #e0b84a;
+      }
       .term-body .prompt {
         color: var(--signal-bright);
       }
@@ -310,6 +313,35 @@
         vertical-align: -0.15em;
         background: var(--signal-bright);
         animation: blink 1.05s steps(1) infinite;
+      }
+
+      .score-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 10px;
+        font-family: var(--font-mono);
+        font-size: 13px;
+        color: #9fe3b4;
+      }
+      .score-chip strong {
+        color: #2bc484;
+        font-size: 16px;
+        letter-spacing: -0.02em;
+        animation: scorePulse 2.4s ease-in-out infinite;
+      }
+
+      .pulse-ring {
+        position: absolute;
+        right: 12%;
+        top: 28%;
+        width: min(42vw, 420px);
+        height: min(42vw, 420px);
+        border-radius: 50%;
+        border: 1px solid rgba(18, 168, 107, 0.22);
+        box-shadow: 0 0 0 40px rgba(18, 168, 107, 0.04);
+        animation: ringBreath 6s ease-in-out infinite;
+        pointer-events: none;
       }
 
       .wrap {
@@ -406,6 +438,9 @@
         .headline {
           max-width: none;
         }
+        .pulse-ring {
+          opacity: 0.35;
+        }
       }
 
       .cmd-block {
@@ -469,6 +504,14 @@
         color: var(--muted);
         font-size: 0.95rem;
         font-weight: 500;
+      }
+
+      .feature.new dt::after {
+        content: "NEW";
+        margin-left: 8px;
+        font-size: 10px;
+        letter-spacing: 0.08em;
+        color: var(--signal-bright);
       }
 
       .json-panel {
@@ -538,6 +581,28 @@
         }
       }
 
+      @keyframes scorePulse {
+        0%,
+        100% {
+          text-shadow: 0 0 0 transparent;
+        }
+        50% {
+          text-shadow: 0 0 18px rgba(43, 196, 132, 0.55);
+        }
+      }
+
+      @keyframes ringBreath {
+        0%,
+        100% {
+          transform: scale(0.92);
+          opacity: 0.55;
+        }
+        50% {
+          transform: scale(1.05);
+          opacity: 0.95;
+        }
+      }
+
       @media (prefers-reduced-motion: reduce) {
         *,
         *::before,
@@ -560,11 +625,13 @@
     </header>
 
     <section class="hero" aria-label="netq 产品介绍">
-      <div class="hero-stage" aria-hidden="true"></div>
+      <div class="hero-stage" aria-hidden="true">
+        <div class="pulse-ring"></div>
+      </div>
       <div class="hero-content">
         <h1 class="brand">netq</h1>
-        <p class="headline">把网络排查做成看得懂的一键结果</p>
-        <p class="support">菜单交互与子命令脚本同一套能力，不用背 netstat / ping 参数。</p>
+        <p class="headline">一眼看懂网络哪里出了问题</p>
+        <p class="support">菜单交互 + 子命令脚本同一套能力。体检打分、TLS、DNS 对比、实时监视。</p>
         <div class="cta">
           <button class="btn btn-primary" type="button" id="copy-install">复制安装命令</button>
           <a class="btn btn-ghost" href="https://github.com/AlexanderJ-Carter/netq#readme">查看 README</a>
@@ -576,12 +643,17 @@
             <span class="dot"></span><span class="dot"></span><span class="dot"></span>
             <span style="margin-left: 8px">~/ netq doctor</span>
           </div>
-          <pre class="term-body"><span class="prompt">$</span> netq doctor github.com --ports 80,443
+          <pre class="term-body" id="term-demo"><span class="prompt">$</span> netq doctor github.com --ports 80,443
 <span class="dim">快速体检: github.com</span>
 <span class="ok">✔</span> DNS: 20.205.243.166
 <span class="ok">✔</span> Ping: 连通
 <span class="ok">✔</span> TCP: 80,443 开放
 <span class="ok">✔</span> HTTPS: 200 (186ms)
+<span class="ok">✔</span> TLS: TLSv1.3 · 剩余 84 天
+健康分: <span class="ok">100/100</span>
+<span class="dim">· 各项检查通过，网络路径健康</span>
+<span class="prompt">$</span> netq tls github.com
+<span class="ok">✔</span> TLS: TLSv1.3 · 剩余 84 天
 <span class="prompt">$</span> <span class="cursor"></span></pre>
         </div>
       </div>
@@ -607,14 +679,16 @@
             <h3>日常排查</h3>
             <pre>netq
 netq doctor github.com --ports "80,443"
-netq tcp github.com 443
-netq http https://github.com
-netq ping 1.1.1.1 -c 4</pre>
+netq tls github.com
+netq dns-compare github.com
+netq watch 1.1.1.1 -c 5
+netq tcp github.com 443</pre>
           </div>
           <div class="cmd-block">
             <h3>脚本 / Agent</h3>
             <pre>netq doctor github.com --json
-netq dns github.com --type MX --json
+netq tls github.com --json
+netq dns-compare github.com --json
 netq listening --port 3000 -q
 netq favorites list
 netq help doctor</pre>
@@ -625,11 +699,23 @@ netq help doctor</pre>
       <section id="features">
         <p class="section-label">Capabilities</p>
         <h2 class="section-title">覆盖日常诊断</h2>
-        <p class="section-lead">从出口 IP 到监听端口，一条工具链走完常见排查路径。</p>
+        <p class="section-lead">从出口 IP 到证书过期，一条工具链走完常见排查路径。</p>
         <dl class="feature-list">
-          <div class="feature">
+          <div class="feature new">
             <dt>doctor</dt>
-            <dd>DNS + Ping + TCP + HTTP 并行体检，可导出报告到 ~/.netq/reports/</dd>
+            <dd>DNS + Ping + TCP + HTTP + TLS 并行体检，输出健康分与建议，可导出报告</dd>
+          </div>
+          <div class="feature new">
+            <dt>tls</dt>
+            <dd>TLS 握手检查证书有效期、SAN、协议与密码套件</dd>
+          </div>
+          <div class="feature new">
+            <dt>dns-compare</dt>
+            <dd>对比系统 DNS 与 Cloudflare / Google，快速发现污染或分流差异</dd>
+          </div>
+          <div class="feature new">
+            <dt>watch</dt>
+            <dd>周期性 Ping + TCP 监视，终端刷新连通状态</dd>
           </div>
           <div class="feature">
             <dt>dns / ping</dt>
@@ -658,10 +744,12 @@ netq help doctor</pre>
           <pre>{
   "ok": true,
   "command": "doctor",
-  "ts": "2026-07-19T00:00:00.000Z",
+  "ts": "2026-07-30T00:00:00.000Z",
   "data": {
     "host": "github.com",
     "ports": [80, 443],
+    "score": 100,
+    "advice": ["各项检查通过，网络路径健康"],
     "checks": {}
   }
 }</pre>
@@ -676,7 +764,7 @@ netq help doctor</pre>
           <a href="https://github.com/AlexanderJ-Carter/netq/blob/main/SECURITY.md">Security</a> ·
           <a href="https://github.com/AlexanderJ-Carter/netq/blob/main/CONTRIBUTING.md">Contributing</a>
         </p>
-        <p>GitHub Pages 部署，随 main 更新 · v1.0</p>
+        <p>GitHub Pages 部署，随 main 更新 · v1.1</p>
       </footer>
     </div>
 

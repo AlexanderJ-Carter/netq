@@ -16,6 +16,9 @@ const {
   runFavoritesRemove,
   runFavoritesRun
 } = require('./favorites');
+const { runTls } = require('./tls');
+const { runDnsCompare } = require('./dns-compare');
+const { runWatch } = require('./watch');
 
 module.exports = {
   printJson,
@@ -31,5 +34,8 @@ module.exports = {
   runFavoritesList,
   runFavoritesAdd,
   runFavoritesRemove,
-  runFavoritesRun
+  runFavoritesRun,
+  runTls,
+  runDnsCompare,
+  runWatch
 };

@@ -18,12 +18,15 @@ ${ui.brand()}
   public-ip                获取公网 IP
   interfaces               本机网卡信息
   dns <主机>               DNS 查询
+  dns-compare <主机>       多解析器 DNS 对比
   ping <主机>              Ping
   traceroute <主机>        Traceroute
   tcp <主机> <端口列表>    TCP 端口检测
   http <URL>               HTTP(S) 检测
+  tls <主机>               TLS 证书检测
   listening                监听端口列表
-  doctor <主机>            快速体检（DNS+Ping+TCP+HTTP）
+  doctor <主机>            快速体检（含健康分）
+  watch <主机>             周期性监视连通性
   favorites                收藏夹管理
   help [命令]              显示帮助
 
@@ -38,14 +41,10 @@ ${ui.brand()}
   netq
   netq public-ip
   netq dns github.com
-  netq dns github.com --type MX
-  netq ping 1.1.1.1 -c 4
-  netq tcp github.com 443
-  netq tcp github.com 80,443,3000-3010 --json
-  netq http https://github.com --method GET
-  netq listening --port 3000
-  netq doctor github.com --ports 80,443 --export
-  netq favorites list
+  netq dns-compare github.com
+  netq tls github.com
+  netq doctor github.com --ports 80,443
+  netq watch 1.1.1.1 --interval 2000 -c 5
   netq help doctor
 `);
 }
@@ -91,6 +90,19 @@ Examples:
   netq dns github.com
   netq dns github.com --type MX
   netq dns google.com --json
+`,
+  'dns-compare': `
+${ui.title('netq dns-compare <主机>')}
+
+功能:
+  对比系统 DNS 与 Cloudflare / Google 公共解析器结果
+
+用法:
+  netq dns-compare <主机> [--type A|AAAA|CNAME|TXT|MX|NS|SRV] [--json] [-q]
+
+Examples:
+  netq dns-compare github.com
+  netq dns-compare example.com --type AAAA --json
 `,
   ping: `
 ${ui.title('netq ping <主机>')}
@@ -147,6 +159,19 @@ Examples:
   netq http https://example.com --method GET
   netq http https://github.com --json
 `,
+  tls: `
+${ui.title('netq tls <主机>')}
+
+功能:
+  TLS 握手并检查证书有效期、SAN、协议与套件
+
+用法:
+  netq tls <主机> [--port 443] [--json] [-q]
+
+Examples:
+  netq tls github.com
+  netq tls example.com --port 443 --json
+`,
   listening: `
 ${ui.title('netq listening')}
 
@@ -165,7 +190,7 @@ Examples:
 ${ui.title('netq doctor <主机>')}
 
 功能:
-  一键体检：DNS + Ping + TCP + HTTP（先 HTTPS 再 HTTP）
+  一键体检：DNS + Ping + TCP + HTTP + TLS，输出健康分与建议
 
 用法:
   netq doctor <主机> [--ports <端口列表>] [--export] [--json] [-q]
@@ -174,6 +199,19 @@ Examples:
   netq doctor github.com
   netq doctor github.com --ports 80,443,8080
   netq doctor github.com --export --json
+`,
+  watch: `
+${ui.title('netq watch <主机>')}
+
+功能:
+  周期性 Ping + TCP 监视，终端刷新状态（Ctrl+C 退出）
+
+用法:
+  netq watch <主机> [--port 443] [--interval <ms>] [-c <轮次>] [-q]
+
+Examples:
+  netq watch 1.1.1.1
+  netq watch github.com --port 443 --interval 1500 -c 10
 `,
   favorites: `
 ${ui.title('netq favorites')}

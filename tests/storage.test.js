@@ -12,6 +12,7 @@ describe('storage', () => {
       expect(config.defaults.tcpTimeoutMs).toBe(2500);
       expect(config.defaults.httpTimeoutMs).toBe(6000);
       expect(config.defaults.pingCount).toBe(4);
+      expect(config.recentHost).toBe('github.com');
       expect(Array.isArray(config.favorites)).toBe(true);
     });
 

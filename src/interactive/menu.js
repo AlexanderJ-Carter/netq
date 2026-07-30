@@ -16,9 +16,21 @@ const {
   runFavoritesList,
   runFavoritesAdd,
   runFavoritesRemove,
-  runFavoritesRun
+  runFavoritesRun,
+  runTls,
+  runDnsCompare,
+  runWatch
 } = require('../commands');
 const { RR_TYPES } = require('../commands/dns');
+
+/**
+ * Recent host default for prompts.
+ * @returns {string}
+ */
+function recentHostDefault() {
+  const cfg = storage.readConfigSync();
+  return cfg.recentHost || 'github.com';
+}
 
 /**
  * Run the interactive menu loop.
@@ -32,16 +44,21 @@ async function interactiveMenu() {
     const choice = await select({
       message: '选择操作',
       choices: [
+        { name: '── 本机 ──', value: 'sep-local', disabled: true },
         { name: '公网 IP', value: 'public-ip' },
         { name: '本机网卡信息', value: 'interfaces' },
+        { name: '监听端口列表', value: 'listening' },
+        { name: '── 连通诊断 ──', value: 'sep-diag', disabled: true },
+        { name: '快速体检 (doctor)', value: 'doctor' },
         { name: 'DNS 查询', value: 'dns' },
+        { name: 'DNS 多解析器对比', value: 'dns-compare' },
         { name: 'Ping', value: 'ping' },
         { name: 'Traceroute', value: 'traceroute' },
         { name: 'TCP 端口检测', value: 'tcp' },
         { name: 'HTTP(S) 检测', value: 'http' },
-        { name: '监听端口列表', value: 'listening' },
-        { name: '快速体检', value: 'doctor' },
-        { name: '──────────', value: 'separator', disabled: true },
+        { name: 'TLS 证书检测', value: 'tls' },
+        { name: '── 进阶 ──', value: 'sep-adv', disabled: true },
+        { name: '周期性监视 (watch)', value: 'watch' },
         { name: '收藏夹', value: 'favorites' },
         { name: '退出', value: 'exit' }
       ]
@@ -68,6 +85,7 @@ async function interactiveMenu() {
  */
 async function handleChoice(choice) {
   const cfg = storage.readConfigSync();
+  const hostDefault = recentHostDefault();
 
   switch (choice) {
     case 'public-ip':
@@ -81,7 +99,7 @@ async function handleChoice(choice) {
     }
 
     case 'dns': {
-      const host = await input({ message: '输入域名', default: 'github.com' });
+      const host = await input({ message: '输入域名', default: hostDefault });
       await runDns(host, { jsonMode: false });
       const more = await confirm({ message: '查询更多记录类型？', default: false });
       if (more) {
@@ -94,8 +112,18 @@ async function handleChoice(choice) {
       break;
     }
 
+    case 'dns-compare': {
+      const host = await input({ message: '输入域名', default: hostDefault });
+      const rtype = await select({
+        message: '记录类型',
+        choices: ['A', 'AAAA', 'CNAME', 'TXT', 'MX', 'NS'].map((t) => ({ name: t, value: t }))
+      });
+      await runDnsCompare(host, { jsonMode: false, type: rtype });
+      break;
+    }
+
     case 'ping': {
-      const host = await input({ message: '输入目标主机', default: '1.1.1.1' });
+      const host = await input({ message: '输入目标主机', default: hostDefault });
       const countRaw = await input({
         message: 'Ping 次数',
         default: String(cfg.defaults.pingCount || 4)
@@ -105,20 +133,20 @@ async function handleChoice(choice) {
     }
 
     case 'traceroute': {
-      const host = await input({ message: '输入目标主机', default: 'github.com' });
+      const host = await input({ message: '输入目标主机', default: hostDefault });
       await runTraceroute(host, { jsonMode: false });
       break;
     }
 
     case 'tcp': {
-      const host = await input({ message: '输入目标主机', default: 'github.com' });
+      const host = await input({ message: '输入目标主机', default: hostDefault });
       const portsStr = await input({ message: '端口（支持 80,443,3000-3010）', default: '443' });
       await runTcp(host, portsStr, { jsonMode: false });
       break;
     }
 
     case 'http': {
-      const url = await input({ message: '输入 URL', default: 'https://github.com' });
+      const url = await input({ message: '输入 URL', default: `https://${hostDefault}` });
       const method = await select({
         message: 'HTTP 方法',
         choices: [
@@ -127,6 +155,13 @@ async function handleChoice(choice) {
         ]
       });
       await runHttp(url, { jsonMode: false, method });
+      break;
+    }
+
+    case 'tls': {
+      const host = await input({ message: '输入目标主机', default: hostDefault });
+      const portRaw = await input({ message: '端口', default: '443' });
+      await runTls(host, { jsonMode: false, port: Number(portRaw) });
       break;
     }
 
@@ -142,7 +177,7 @@ async function handleChoice(choice) {
     }
 
     case 'doctor': {
-      const host = await input({ message: '输入目标主机', default: 'github.com' });
+      const host = await input({ message: '输入目标主机', default: hostDefault });
       const customPorts = await confirm({ message: '自定义检测端口？', default: false });
       let portsInput;
       if (customPorts) {
@@ -150,6 +185,24 @@ async function handleChoice(choice) {
       }
       const exportReport = await confirm({ message: '导出报告到 ~/.netq/reports/？', default: false });
       await runDoctor(host, { jsonMode: false, portsInput, exportReport });
+      break;
+    }
+
+    case 'watch': {
+      const host = await input({ message: '输入目标主机', default: hostDefault });
+      const portRaw = await input({ message: 'TCP 端口', default: '443' });
+      const intervalRaw = await input({ message: '间隔毫秒', default: '2000' });
+      const limited = await confirm({ message: '限制轮次？', default: false });
+      let count = null;
+      if (limited) {
+        count = Number(await input({ message: '轮次', default: '10' }));
+      }
+      await runWatch(host, {
+        jsonMode: false,
+        port: Number(portRaw),
+        intervalMs: Number(intervalRaw),
+        count
+      });
       break;
     }
 
@@ -194,7 +247,7 @@ async function favoritesMenu() {
     });
     const target = await input({
       message: type === 'http' ? 'URL' : '目标主机',
-      default: type === 'http' ? 'https://www.baidu.com' : '1.1.1.1'
+      default: type === 'http' ? 'https://www.baidu.com' : recentHostDefault()
     });
     let port;
     if (type === 'tcp') {

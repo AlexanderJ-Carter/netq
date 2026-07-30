@@ -104,6 +104,30 @@ describe('parseArgs', () => {
       expect(result.command).toBe('interactive');
       expect(result.interactive).toBe(true);
     });
+
+    test('parses tls with port', () => {
+      const result = parseArgs(['tls', 'example.com', '--port', '8443', '--json']);
+      expect(result.command).toBe('tls');
+      expect(result.host).toBe('example.com');
+      expect(result.port).toBe(8443);
+      expect(result.json).toBe(true);
+    });
+
+    test('parses dns-compare with type', () => {
+      const result = parseArgs(['dns-compare', 'example.com', '--type', 'AAAA']);
+      expect(result.command).toBe('dns-compare');
+      expect(result.host).toBe('example.com');
+      expect(result.type).toBe('AAAA');
+    });
+
+    test('parses watch with interval and count', () => {
+      const result = parseArgs(['watch', '1.1.1.1', '--interval', '1500', '-c', '5', '--port', '443']);
+      expect(result.command).toBe('watch');
+      expect(result.host).toBe('1.1.1.1');
+      expect(result.interval).toBe(1500);
+      expect(result.count).toBe(5);
+      expect(result.port).toBe(443);
+    });
   });
 
   describe('favorites', () => {

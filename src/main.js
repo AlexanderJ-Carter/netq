@@ -16,7 +16,10 @@ const {
   runFavoritesList,
   runFavoritesAdd,
   runFavoritesRemove,
-  runFavoritesRun
+  runFavoritesRun,
+  runTls,
+  runDnsCompare,
+  runWatch
 } = require('./commands');
 const { interactiveMenu } = require('./interactive/menu');
 
@@ -88,6 +91,10 @@ async function main() {
       if (!opts.host) return failUsage('请指定主机', 'netq dns github.com');
       return applyExit(await runDns(opts.host, { ...common, type: opts.type }));
 
+    case 'dns-compare':
+      if (!opts.host) return failUsage('请指定主机', 'netq dns-compare github.com');
+      return applyExit(await runDnsCompare(opts.host, { ...common, type: opts.type || 'A' }));
+
     case 'ping':
       if (!opts.host) return failUsage('请指定主机', 'netq ping 1.1.1.1');
       return applyExit(await runPing(opts.host, { ...common, count: opts.count }));
@@ -106,6 +113,10 @@ async function main() {
       if (!opts.url) return failUsage('请指定 URL', 'netq http https://github.com');
       return applyExit(await runHttp(opts.url, { ...common, method: opts.method || 'HEAD' }));
 
+    case 'tls':
+      if (!opts.host) return failUsage('请指定主机', 'netq tls github.com');
+      return applyExit(await runTls(opts.host, { ...common, port: opts.port || 443 }));
+
     case 'listening':
       return applyExit(await runListening({ ...common, filterPort: opts.port }));
 
@@ -116,6 +127,17 @@ async function main() {
           ...common,
           portsInput: opts.ports,
           exportReport: opts.exportReport
+        })
+      );
+
+    case 'watch':
+      if (!opts.host) return failUsage('请指定主机', 'netq watch 1.1.1.1');
+      return applyExit(
+        await runWatch(opts.host, {
+          ...common,
+          port: opts.port || 443,
+          intervalMs: opts.interval || 2000,
+          count: opts.count
         })
       );
 

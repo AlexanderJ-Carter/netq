@@ -16,6 +16,9 @@ const { getLocalInterfaces, systemNetInfo } = require('./interfaces');
 const { ping, traceroute } = require('./ping');
 const { httpCheck } = require('./http');
 const { tcpCheck, tcpBatchCheck } = require('./tcp');
+const { tlsCheck, daysRemaining } = require('./tls');
+const { dnsCompare } = require('./dns-compare');
+const { scoreDoctor } = require('./score');
 const {
   listListeningPorts,
   parseWindowsNetstat,
@@ -36,6 +39,7 @@ module.exports = {
   decodeOutput,
   dnsLookup,
   dnsResolve,
+  dnsCompare,
   fetchPublicIp,
   getLocalInterfaces,
   systemNetInfo,
@@ -44,6 +48,9 @@ module.exports = {
   httpCheck,
   tcpCheck,
   tcpBatchCheck,
+  tlsCheck,
+  daysRemaining,
+  scoreDoctor,
   listListeningPorts,
   parseWindowsNetstat,
   parseSs,

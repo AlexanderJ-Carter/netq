@@ -90,6 +90,62 @@ export function tcpBatchCheck(
   options?: { timeoutMs?: number; concurrency?: number }
 ): Promise<TcpCheckResult[]>;
 
+export interface TlsCheckResult {
+  ok: boolean;
+  host: string;
+  port: number;
+  ms: number;
+  protocol?: string;
+  cipher?: string;
+  authorized?: boolean;
+  authorizationError?: string;
+  subject?: string;
+  issuer?: string;
+  validFrom?: string;
+  validTo?: string;
+  daysRemaining?: number | null;
+  san?: string[];
+  fingerprint256?: string;
+  error?: string;
+}
+
+export function tlsCheck(
+  hostInput: string,
+  options?: { port?: number | string; timeoutMs?: number; servername?: string }
+): Promise<TlsCheckResult>;
+
+export function daysRemaining(validTo: string | Date, nowMs?: number): number;
+
+export interface DnsCompareResult {
+  ok: boolean;
+  host: string;
+  type: string;
+  sources: Array<{
+    name: string;
+    servers: string[] | null;
+    ok: boolean;
+    addresses: string[];
+    error?: string;
+  }>;
+  consistent: boolean;
+  mismatch: boolean;
+}
+
+export function dnsCompare(
+  hostInput: string,
+  options?: { type?: string; resolvers?: Array<{ name: string; servers: string[] | null }> }
+): Promise<DnsCompareResult>;
+
+export interface DoctorScoreResult {
+  score: number;
+  max: number;
+  earned: number;
+  parts: Record<string, { weight: number; ok: boolean; earned: number }>;
+  advice: string[];
+}
+
+export function scoreDoctor(checks?: Record<string, unknown>): DoctorScoreResult;
+
 export interface SystemNetInfoResult {
   command: string;
   ok: boolean;

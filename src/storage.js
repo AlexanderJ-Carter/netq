@@ -51,6 +51,7 @@ function defaultConfig() {
       httpTimeoutMs: 6000,
       pingCount: 4
     },
+    recentHost: 'github.com',
     favorites: [
       { label: 'DNS: 1.1.1.1', type: 'ping', target: '1.1.1.1' },
       { label: 'DNS: 8.8.8.8', type: 'ping', target: '8.8.8.8' },
@@ -77,11 +78,25 @@ function writeConfigSync(cfg) {
   fs.writeFileSync(configPath(), JSON.stringify(cfg, null, 2), 'utf8');
 }
 
+/**
+ * Persist the last used host for interactive defaults.
+ * @param {string} host
+ */
+function rememberHost(host) {
+  const value = String(host || '').trim();
+  if (!value) return;
+  const cfg = readConfigSync();
+  if (cfg.recentHost === value) return;
+  cfg.recentHost = value;
+  writeConfigSync(cfg);
+}
+
 function mergeDefaults(cfg, def) {
   if (!cfg || typeof cfg !== 'object') return def;
   const out = { ...def, ...cfg };
   out.defaults = { ...def.defaults, ...(cfg.defaults || {}) };
   out.favorites = Array.isArray(cfg.favorites) ? cfg.favorites : def.favorites;
+  out.recentHost = typeof cfg.recentHost === 'string' && cfg.recentHost.trim() ? cfg.recentHost.trim() : def.recentHost;
   return out;
 }
 
@@ -91,6 +106,7 @@ module.exports = {
   readConfigSync,
   writeConfigSync,
   writeReportSync,
-  defaultConfig
+  defaultConfig,
+  rememberHost
 };
 

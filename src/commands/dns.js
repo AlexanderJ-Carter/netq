@@ -4,6 +4,7 @@ const lib = require('../lib');
 const ui = require('../ui');
 const ora = require('./_ora');
 const { printJson } = require('./_output');
+const storage = require('../storage');
 
 const RR_TYPES = ['A', 'AAAA', 'CNAME', 'TXT', 'MX', 'NS', 'SRV'];
 
@@ -35,6 +36,7 @@ async function runDns(host, { jsonMode = false, quiet = false, type } = {}) {
   const rrtype = type ? String(type).toUpperCase() : 'ALL';
 
   try {
+    storage.rememberHost(host);
     if (rrtype !== 'ALL' && !RR_TYPES.includes(rrtype)) {
       throw new Error(`不支持的记录类型：${rrtype}（可用: all, ${RR_TYPES.join(', ')}）`);
     }

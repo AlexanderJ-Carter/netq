@@ -45,8 +45,9 @@ async function systemNetInfo({ timeoutMs = 12000 } = {}) {
     };
   }
   const ifconfig = await runCommand('ifconfig', [], { timeoutMs });
-  if (ifconfig.ok)
-    {return { command: ifconfig.cmd, ok: true, stdout: ifconfig.stdout, stderr: ifconfig.stderr };}
+  if (ifconfig.ok) {
+    return { command: ifconfig.cmd, ok: true, stdout: ifconfig.stdout, stderr: ifconfig.stderr };
+  }
   const ip = await runCommand('ip', ['a'], { timeoutMs });
   return { command: ip.cmd, ok: ip.ok, stdout: ip.stdout, stderr: ip.stderr };
 }

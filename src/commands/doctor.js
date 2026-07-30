@@ -82,9 +82,9 @@ async function runDoctor(
 
   results.checks.dns = dnsResult;
   if (dnsSpinner) {
-    if (dnsResult.ok)
-      {dnsSpinner.succeed(`DNS: ${dnsResult.addresses.map(r => r.address).join(', ')}`);}
-    else dnsSpinner.fail(`DNS: ${dnsResult.error}`);
+    if (dnsResult.ok) {
+      dnsSpinner.succeed(`DNS: ${dnsResult.addresses.map(r => r.address).join(', ')}`);
+    } else dnsSpinner.fail(`DNS: ${dnsResult.error}`);
   }
 
   results.checks.ping = pingResult;
@@ -185,8 +185,9 @@ async function runDoctor(
     printJson('doctor', results.ok, results);
   } else if (quiet) {
     for (const t of results.checks.tcp || []) {
-      if (t && t.port !== undefined && t.port !== null)
-        {console.log(`${t.port}\t${t.ok ? 'open' : 'closed'}`);}
+      if (t && t.port !== undefined && t.port !== null) {
+        console.log(`${t.port}\t${t.ok ? 'open' : 'closed'}`);
+      }
     }
     console.log(`score\t${results.score}`);
     console.log(results.ok ? 'ok' : 'failed');

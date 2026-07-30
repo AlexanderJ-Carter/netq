@@ -24,6 +24,14 @@ body:
       description: 请粘贴命令输出（注意脱敏）
       render: shell
   - type: input
+    id: netq
+    attributes:
+      label: netq 版本
+      description: 运行 `netq -v` 的输出
+      placeholder: netq v1.1.0
+    validations:
+      required: true
+  - type: input
     id: os
     attributes:
       label: 操作系统
@@ -37,3 +45,11 @@ body:
       placeholder: 例如 20.12.2 / 22.3.0 ...
     validations:
       required: true
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: 提交前确认
+      options:
+        - label: 我已搜索过现有 Issue，确认不是重复报告
+        - label: 这不是安全漏洞（安全问题请走 Security Advisory）
+          required: true

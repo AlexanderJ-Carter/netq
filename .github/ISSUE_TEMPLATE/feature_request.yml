@@ -7,7 +7,21 @@ body:
     id: proposal
     attributes:
       label: 你想要什么能力？
-      description: 说明场景、期望的交互与输出
+      description: 说明场景、期望的交互与输出（CLI 子命令 / 交互菜单 / JSON）
+      placeholder: 例如：希望 netq 能检测 HTTP/2 或对比两个主机的延迟……
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: 主要影响区域
+      options:
+        - CLI 子命令
+        - 交互菜单
+        - doctor / 报告
+        - 文档 / 落地页
+        - 库 API（src/lib）
+        - 其他
     validations:
       required: true
   - type: textarea
@@ -19,4 +33,3 @@ body:
     id: extra
     attributes:
       label: 其他信息
-

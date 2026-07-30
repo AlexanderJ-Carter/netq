@@ -108,10 +108,14 @@ const { dnsLookup, tcpCheck, tlsCheck, dnsCompare, scoreDoctor } = require('@ale
 
 | 文档                               | 说明               |
 | ---------------------------------- | ------------------ |
-| [LICENSE](LICENSE)                 | MIT 许可证         |
+| [LICENSE](LICENSE)                 | MIT 许可证（SPDX: MIT） |
 | [SECURITY.md](SECURITY.md)         | 安全策略与漏洞报告 |
+| [SUPPORT.md](SUPPORT.md)           | 获取帮助与反馈渠道 |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | 贡献指南           |
+| [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | 行为准则     |
 | [CHANGELOG.md](CHANGELOG.md)       | 更新记录           |
 | [RELEASE.md](RELEASE.md)           | 维护者发布流程     |
+
+**许可证**：MIT © 2026 Alexander James Carter。贡献即表示同意以相同许可证授权。
 
 **页面展示**：功能与用法展示页见 [docs/index.html](docs/index.html)。

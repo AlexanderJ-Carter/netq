@@ -64,7 +64,7 @@
   },
   "dependencies": {
     "@inquirer/prompts": "^8.4.1",
-    "chalk": "^4.1.2",
+    "chalk": "^6.0.0",
     "cli-table3": "^0.6.5",
     "ora": "^9.4.0"
   },

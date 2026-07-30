@@ -9,9 +9,14 @@ permissions:
   contents: read
   id-token: write
 
+concurrency:
+  group: publish-npm
+  cancel-in-progress: false
+
 jobs:
   publish:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -23,8 +28,12 @@ jobs:
           cache: "npm"
       - name: Install dependencies
         run: npm ci
+      - name: Run lint
+        run: npm run lint
       - name: Run tests
         run: npm test
+      - name: Security audit
+        run: npm audit --audit-level=high
       - name: Publish to npm
         run: npm publish --access public --provenance
         env:

@@ -34,11 +34,11 @@ async function runListening({ jsonMode = false, filterPort, quiet = false } = {}
     }
 
     if (filterPort) {
-      ports = ports.filter((p) => p.localPort === filterPort);
+      ports = ports.filter(p => p.localPort === filterPort);
     }
 
     if (lib.isWindows() && ports.length > 0) {
-      const pids = ports.map((p) => p.pid).filter(Boolean);
+      const pids = ports.map(p => p.pid).filter(Boolean);
       const procMap = await lib.resolveWindowsProcessNames(pids);
       for (const p of ports) {
         if (p.pid && procMap.has(p.pid)) p.process = procMap.get(p.pid);

@@ -52,12 +52,12 @@ async function runWatch(
       const [pingResult, tcpResult] = await Promise.all([
         lib
           .ping(host, { count: 1 })
-          .then((p) => ({ ok: p.ok, detail: p.ok ? '通' : p.stderr || p.stdout || '失败' }))
-          .catch((e) => ({ ok: false, detail: e.message })),
+          .then(p => ({ ok: p.ok, detail: p.ok ? '通' : p.stderr || p.stdout || '失败' }))
+          .catch(e => ({ ok: false, detail: e.message })),
         lib
           .tcpCheck(host, port, { timeoutMs: tcpTimeout })
-          .then((t) => ({ ok: t.ok, ms: t.ms, detail: t.ok ? `${t.ms}ms` : t.error || '关闭' }))
-          .catch((e) => ({ ok: false, ms: 0, detail: e.message }))
+          .then(t => ({ ok: t.ok, ms: t.ms, detail: t.ok ? `${t.ms}ms` : t.error || '关闭' }))
+          .catch(e => ({ ok: false, ms: 0, detail: e.message }))
       ]);
 
       lastOk = pingResult.ok && tcpResult.ok;
@@ -82,7 +82,7 @@ async function runWatch(
 
       const elapsed = Date.now() - started;
       const wait = Math.max(0, interval - elapsed);
-      await new Promise((r) => setTimeout(r, wait));
+      await new Promise(r => setTimeout(r, wait));
     }
   } finally {
     process.removeListener('SIGINT', onSigInt);

@@ -27,7 +27,12 @@ async function runInterfaces({ jsonMode = false, quiet = false, system = false }
       printJson('interfaces', true, {
         interfaces,
         system: systemInfo
-          ? { command: systemInfo.command, ok: systemInfo.ok, stdout: systemInfo.stdout, stderr: systemInfo.stderr }
+          ? {
+              command: systemInfo.command,
+              ok: systemInfo.ok,
+              stdout: systemInfo.stdout,
+              stderr: systemInfo.stderr
+            }
           : null
       });
     } else if (!quiet) {

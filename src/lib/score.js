@@ -16,7 +16,7 @@ const WEIGHTS = {
  */
 function checkOk(key, value) {
   if (!value) return false;
-  if (key === 'tcp' && Array.isArray(value)) return value.length > 0 && value.every((x) => x && x.ok);
+  if (key === 'tcp' && Array.isArray(value)) return value.length > 0 && value.every(x => x && x.ok);
   return Boolean(value.ok);
 }
 

@@ -45,7 +45,7 @@ async function cachedDnsLookup(host, options) {
 async function dnsLookup(target, { family = 0 } = {}) {
   const host = normalizeHost(target);
   const res = await cachedDnsLookup(host, { all: true, family, verbatim: true });
-  return res.map((r) => ({ address: r.address, family: r.family }));
+  return res.map(r => ({ address: r.address, family: r.family }));
 }
 
 /**

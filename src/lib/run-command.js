@@ -28,7 +28,7 @@ function decodeOutput(buf) {
  * @returns {Promise<{ok: boolean, code: number|null, stdout: string, stderr: string, cmd: string}>}
  */
 function runCommand(cmd, args, { timeoutMs = 15000 } = {}) {
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     const child = spawn(cmd, args, { windowsHide: true });
     const stdoutChunks = [];
     const stderrChunks = [];
@@ -48,9 +48,9 @@ function runCommand(cmd, args, { timeoutMs = 15000 } = {}) {
     }, timeoutMs);
     if (typeof t.unref === 'function') t.unref();
 
-    if (child.stdout) child.stdout.on('data', (d) => stdoutChunks.push(Buffer.from(d)));
-    if (child.stderr) child.stderr.on('data', (d) => stderrChunks.push(Buffer.from(d)));
-    child.on('error', (e) => {
+    if (child.stdout) child.stdout.on('data', d => stdoutChunks.push(Buffer.from(d)));
+    if (child.stderr) child.stderr.on('data', d => stderrChunks.push(Buffer.from(d)));
+    child.on('error', e => {
       clearTimeout(t);
       if (finished) return;
       finished = true;
@@ -62,7 +62,7 @@ function runCommand(cmd, args, { timeoutMs = 15000 } = {}) {
         cmd: [cmd, ...args].join(' ')
       });
     });
-    child.on('close', (code) => {
+    child.on('close', code => {
       clearTimeout(t);
       if (finished) return;
       finished = true;

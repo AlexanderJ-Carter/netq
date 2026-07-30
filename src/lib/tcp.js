@@ -17,7 +17,7 @@ async function tcpCheck(hostInput, portInput, { timeoutMs = 2500 } = {}) {
   const port = normalizePort(portInput);
 
   const start = Date.now();
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     const socket = new net.Socket();
     let done = false;
 
@@ -41,7 +41,7 @@ async function tcpCheck(hostInput, portInput, { timeoutMs = 2500 } = {}) {
     socket.setTimeout(timeoutMs);
     socket.once('connect', () => finish(true));
     socket.once('timeout', () => finish(false, '超时'));
-    socket.once('error', (e) => finish(false, e && e.code ? e.code : e.message || '错误'));
+    socket.once('error', e => finish(false, e && e.code ? e.code : e.message || '错误'));
     socket.connect(port, host);
   });
 }

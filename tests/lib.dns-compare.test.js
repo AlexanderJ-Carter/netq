@@ -4,7 +4,10 @@ const { normalizeRecords } = require('../src/lib/dns-compare');
 
 describe('dns-compare helpers', () => {
   test('normalizeRecords sorts unique A records', () => {
-    expect(normalizeRecords(['2.2.2.2', '1.1.1.1', '1.1.1.1'], 'A')).toEqual(['1.1.1.1', '2.2.2.2']);
+    expect(normalizeRecords(['2.2.2.2', '1.1.1.1', '1.1.1.1'], 'A')).toEqual([
+      '1.1.1.1',
+      '2.2.2.2'
+    ]);
   });
 
   test('normalizeRecords formats MX', () => {
@@ -20,8 +23,8 @@ describe('dns-compare helpers', () => {
   });
 
   test('normalizeRecords formats SRV', () => {
-    expect(normalizeRecords([{ name: 'sip.example.com', priority: 0, port: 5060 }], 'SRV')).toEqual([
-      '0 5060 sip.example.com'
-    ]);
+    expect(normalizeRecords([{ name: 'sip.example.com', priority: 0, port: 5060 }], 'SRV')).toEqual(
+      ['0 5060 sip.example.com']
+    );
   });
 });

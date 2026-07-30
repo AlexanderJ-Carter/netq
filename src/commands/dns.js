@@ -15,9 +15,7 @@ const RR_TYPES = ['A', 'AAAA', 'CNAME', 'TXT', 'MX', 'NS', 'SRV'];
  */
 function formatRecords(value) {
   if (Array.isArray(value)) {
-    return value
-      .map((v) => (typeof v === 'object' ? JSON.stringify(v) : String(v)))
-      .join('\n');
+    return value.map(v => (typeof v === 'object' ? JSON.stringify(v) : String(v))).join('\n');
   }
   return String(value);
 }
@@ -62,7 +60,7 @@ async function runDns(host, { jsonMode = false, quiet = false, type } = {}) {
       if (rrtype === 'ALL') {
         console.log(
           ui.kvTable([
-            ['lookup', data.lookup.map((r) => `${r.address} (IPv${r.family})`).join('\n') || '无'],
+            ['lookup', data.lookup.map(r => `${r.address} (IPv${r.family})`).join('\n') || '无'],
             ['A', data.a.join('\n') || '无'],
             ['AAAA', data.aaaa.join('\n') || '无']
           ])
@@ -71,7 +69,7 @@ async function runDns(host, { jsonMode = false, quiet = false, type } = {}) {
         console.log(ui.kvTable([[rrtype, formatRecords(data.records) || '无']]));
       }
     } else if (rrtype === 'ALL') {
-      console.log(data.lookup.map((r) => r.address).join('\n'));
+      console.log(data.lookup.map(r => r.address).join('\n'));
     } else {
       console.log(formatRecords(data.records));
     }

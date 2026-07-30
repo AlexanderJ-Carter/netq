@@ -60,7 +60,7 @@ function parseWindowsNetstat(stdout) {
       pid: Number.isFinite(pid) ? pid : 0
     });
   }
-  return out.filter((x) => x.localPort > 0);
+  return out.filter(x => x.localPort > 0);
 }
 
 /**
@@ -91,7 +91,7 @@ function parseSs(stdout) {
       process: proc
     });
   }
-  return out.filter((x) => x.localPort > 0);
+  return out.filter(x => x.localPort > 0);
 }
 
 /**
@@ -123,7 +123,7 @@ function parseUnixNetstat(stdout) {
       process: last.includes('/') ? last : ''
     });
   }
-  return out.filter((x) => x.localPort > 0);
+  return out.filter(x => x.localPort > 0);
 }
 
 /**
@@ -134,12 +134,17 @@ function parseUnixNetstat(stdout) {
  * @returns {Promise<Map<number, string>>}
  */
 async function resolveWindowsProcessNames(pids, { timeoutMs = 8000 } = {}) {
-  const uniq = Array.from(new Set((pids || []).filter((x) => Number.isFinite(x) && x > 0))).slice(0, 200);
+  const uniq = Array.from(new Set((pids || []).filter(x => Number.isFinite(x) && x > 0))).slice(
+    0,
+    200
+  );
   const map = new Map();
 
   const results = await Promise.all(
-    uniq.map(async (pid) => {
-      const r = await runCommand('tasklist', ['/FI', `PID eq ${pid}`, '/FO', 'CSV', '/NH'], { timeoutMs });
+    uniq.map(async pid => {
+      const r = await runCommand('tasklist', ['/FI', `PID eq ${pid}`, '/FO', 'CSV', '/NH'], {
+        timeoutMs
+      });
       const line = (r.stdout || '').trim();
       const m = line.match(/^"([^"]+)",\s*"(\d+)"/);
       return { pid, name: m ? m[1] : null };

@@ -25,7 +25,9 @@ async function runDnsCompare(host, { jsonMode = false, quiet = false, type = 'A'
     if (jsonMode) {
       printJson('dns-compare', result.ok, result);
     } else if (quiet) {
-      console.log(`${result.ok ? 'ok' : 'failed'}\t${result.consistent ? 'consistent' : 'mismatch'}`);
+      console.log(
+        `${result.ok ? 'ok' : 'failed'}\t${result.consistent ? 'consistent' : 'mismatch'}`
+      );
     } else {
       if (spinner) {
         if (!result.ok) spinner.fail('系统 DNS 解析失败');
@@ -33,10 +35,10 @@ async function runDnsCompare(host, { jsonMode = false, quiet = false, type = 'A'
         else spinner.warn('DNS 各解析器结果不一致');
       }
       console.log(ui.title(`DNS 对比: ${host} (${result.type})`));
-      const rows = result.sources.map((s) => [
+      const rows = result.sources.map(s => [
         s.name,
         s.ok ? ui.ok('ok') : ui.err('fail'),
-        s.ok ? (s.addresses.join(', ') || '-') : s.error || '-'
+        s.ok ? s.addresses.join(', ') || '-' : s.error || '-'
       ]);
       console.log(ui.listTable(['解析器', '状态', '结果'], rows));
       console.log(

@@ -15,12 +15,21 @@ jest.mock('../src/lib', () => ({
   parsePorts: jest.requireActual('../src/lib/normalize').parsePorts,
   tcpCheck: jest.fn(async (host, port) => ({ host, port, ok: true, ms: 12, error: '' })),
   tcpBatchCheck: jest.fn(async (host, ports) =>
-    ports.map((port) => ({ host, port, ok: port === 443, ms: 5, error: port === 443 ? '' : 'ECONNREFUSED' }))
+    ports.map(port => ({
+      host,
+      port,
+      ok: port === 443,
+      ms: 5,
+      error: port === 443 ? '' : 'ECONNREFUSED'
+    }))
   )
 }));
 
 jest.mock('../src/storage', () => ({
-  readConfigSync: () => ({ defaults: { tcpTimeoutMs: 2500, httpTimeoutMs: 6000, pingCount: 4 }, favorites: [] })
+  readConfigSync: () => ({
+    defaults: { tcpTimeoutMs: 2500, httpTimeoutMs: 6000, pingCount: 4 },
+    favorites: []
+  })
 }));
 
 const lib = require('../src/lib');

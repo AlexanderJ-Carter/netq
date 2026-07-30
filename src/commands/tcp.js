@@ -23,13 +23,14 @@ async function runTcp(host, portsInput, { jsonMode = false, quiet = false, timeo
   const spinner = !jsonMode && !quiet ? ora(`TCP 检测: ${host} (${label})...`).start() : null;
 
   try {
-    const ports = typeof portsInput === 'number' ? [portsInput] : lib.parsePorts(String(portsInput));
+    const ports =
+      typeof portsInput === 'number' ? [portsInput] : lib.parsePorts(String(portsInput));
     const results =
       ports.length === 1
         ? [await lib.tcpCheck(host, ports[0], { timeoutMs: ms })]
         : await lib.tcpBatchCheck(host, ports, { timeoutMs: ms });
 
-    const ok = results.every((r) => r.ok);
+    const ok = results.every(r => r.ok);
 
     if (jsonMode) {
       printJson('tcp', ok, { host, results });
@@ -46,7 +47,11 @@ async function runTcp(host, portsInput, { jsonMode = false, quiet = false, timeo
         console.log(ui.title(`TCP 检测: ${host}`));
         const rows = [['端口', '状态', '耗时']];
         for (const r of results) {
-          rows.push([String(r.port), r.ok ? ui.ok('开放') : ui.err(r.error || '关闭'), `${r.ms}ms`]);
+          rows.push([
+            String(r.port),
+            r.ok ? ui.ok('开放') : ui.err(r.error || '关闭'),
+            `${r.ms}ms`
+          ]);
         }
         console.log(ui.listTable(rows[0], rows.slice(1)));
       }

@@ -49,8 +49,13 @@ async function runTls(host, { jsonMode = false, quiet = false, port = 443, timeo
           ['颁发者', result.issuer || '-'],
           ['生效', result.validFrom || '-'],
           ['过期', result.validTo || '-'],
-          ['剩余天数', result.daysRemaining === null || result.daysRemaining === undefined ? '-' : String(result.daysRemaining)],
-          ['SAN', (result.san && result.san.length ? result.san.join(', ') : '-')],
+          [
+            '剩余天数',
+            result.daysRemaining === null || result.daysRemaining === undefined
+              ? '-'
+              : String(result.daysRemaining)
+          ],
+          ['SAN', result.san && result.san.length ? result.san.join(', ') : '-'],
           ['指纹', result.fingerprint256 || '-'],
           ['耗时', `${result.ms}ms`]
         ])

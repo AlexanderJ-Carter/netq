@@ -11,10 +11,10 @@ const { withTimeout } = require('./normalize');
  */
 async function fetchPublicIp({ timeoutMs = 4000 } = {}) {
   const req = new Promise((resolve, reject) => {
-    const r = https.get('https://api.ipify.org?format=json', (res) => {
+    const r = https.get('https://api.ipify.org?format=json', res => {
       let data = '';
       res.setEncoding('utf8');
-      res.on('data', (c) => (data += c));
+      res.on('data', c => (data += c));
       res.on('end', () => {
         try {
           const j = JSON.parse(data);

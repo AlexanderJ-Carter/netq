@@ -47,7 +47,7 @@ describe('scoreDoctor', () => {
       http: { ok: true },
       tls: { ok: true, daysRemaining: 7 }
     });
-    expect(advice.some((line) => line.includes('7 天'))).toBe(true);
+    expect(advice.some(line => line.includes('7 天'))).toBe(true);
   });
 
   test('checkOk handles tcp arrays', () => {

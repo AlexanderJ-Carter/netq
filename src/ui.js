@@ -16,7 +16,9 @@ function colorize(fn, text) {
 
 function brand() {
   return (
-    colorize(chalk.bold.green, 'netq') + colorize(chalk.gray, ' · ') + colorize(chalk.gray, '交互式网络排查')
+    colorize(chalk.bold.green, 'netq') +
+    colorize(chalk.gray, ' · ') +
+    colorize(chalk.gray, '交互式网络排查')
   );
 }
 
@@ -97,4 +99,3 @@ module.exports = {
   kvTable,
   listTable
 };
-

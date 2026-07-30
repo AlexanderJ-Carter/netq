@@ -83,10 +83,10 @@ async function dnsCompare(hostInput, { type = 'A', resolvers = DEFAULT_RESOLVERS
     }
   }
 
-  const successful = sources.filter((s) => s.ok);
-  const fingerprints = successful.map((s) => s.addresses.join('|'));
-  const consistent = successful.length >= 2 && fingerprints.every((fp) => fp === fingerprints[0]);
-  const system = sources.find((s) => s.name === 'system');
+  const successful = sources.filter(s => s.ok);
+  const fingerprints = successful.map(s => s.addresses.join('|'));
+  const consistent = successful.length >= 2 && fingerprints.every(fp => fp === fingerprints[0]);
+  const system = sources.find(s => s.name === 'system');
   const ok = Boolean(system && system.ok);
 
   return {

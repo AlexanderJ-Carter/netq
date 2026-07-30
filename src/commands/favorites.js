@@ -31,8 +31,7 @@ async function runFavoritesList({ jsonMode = false, quiet = false } = {}) {
     } else {
       const rows = [['#', '标签', '类型', '目标']];
       favorites.forEach((f, i) => {
-        const target =
-          f.port !== undefined && f.port !== null ? `${f.target}:${f.port}` : f.target;
+        const target = f.port !== undefined && f.port !== null ? `${f.target}:${f.port}` : f.target;
         rows.push([String(i + 1), f.label || '-', f.type || '-', target || '-']);
       });
       console.log(ui.listTable(rows[0], rows.slice(1)));

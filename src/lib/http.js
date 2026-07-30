@@ -15,7 +15,10 @@ const { debugLog } = require('./debug');
  * @param {number} [options.followRedirects=3]
  * @returns {Promise<Object>}
  */
-async function httpCheck(urlInput, { method = 'HEAD', timeoutMs = 6000, followRedirects = 3 } = {}) {
+async function httpCheck(
+  urlInput,
+  { method = 'HEAD', timeoutMs = 6000, followRedirects = 3 } = {}
+) {
   const url = normalizeUrl(urlInput);
   const m = String(method || 'HEAD').toUpperCase();
   const allowed = new Set(['HEAD', 'GET']);
@@ -30,7 +33,7 @@ async function httpCheck(urlInput, { method = 'HEAD', timeoutMs = 6000, followRe
     debugLog(`httpCheck: DNS resolution failed for ${url.hostname}: ${e.message}`);
   }
 
-  const doOne = (u) =>
+  const doOne = u =>
     new Promise((resolve, reject) => {
       const lib = u.protocol === 'https:' ? https : http;
       const start = Date.now();
@@ -44,9 +47,12 @@ async function httpCheck(urlInput, { method = 'HEAD', timeoutMs = 6000, followRe
             accept: '*/*'
           }
         },
-        (res) => {
+        res => {
           res.resume();
-          remoteAddress = res.socket && res.socket.remoteAddress ? String(res.socket.remoteAddress) : remoteAddress;
+          remoteAddress =
+            res.socket && res.socket.remoteAddress
+              ? String(res.socket.remoteAddress)
+              : remoteAddress;
           resolve({
             url: u.toString(),
             status: res.statusCode || 0,
@@ -57,8 +63,8 @@ async function httpCheck(urlInput, { method = 'HEAD', timeoutMs = 6000, followRe
           });
         }
       );
-      req.on('error', (e) => reject(e));
-      req.on('socket', (s) => {
+      req.on('error', e => reject(e));
+      req.on('socket', s => {
         if (!s) return;
         s.on('connect', () => {
           if (s.remoteAddress) remoteAddress = String(s.remoteAddress);

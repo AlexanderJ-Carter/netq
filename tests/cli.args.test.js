@@ -121,7 +121,16 @@ describe('parseArgs', () => {
     });
 
     test('parses watch with interval and count', () => {
-      const result = parseArgs(['watch', '1.1.1.1', '--interval', '1500', '-c', '5', '--port', '443']);
+      const result = parseArgs([
+        'watch',
+        '1.1.1.1',
+        '--interval',
+        '1500',
+        '-c',
+        '5',
+        '--port',
+        '443'
+      ]);
       expect(result.command).toBe('watch');
       expect(result.host).toBe('1.1.1.1');
       expect(result.interval).toBe(1500);

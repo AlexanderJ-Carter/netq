@@ -42,7 +42,7 @@ function collectSans(cert) {
   if (typeof cert.subjectaltname === 'string') {
     return cert.subjectaltname
       .split(',')
-      .map((s) => s.trim())
+      .map(s => s.trim())
       .filter(Boolean);
   }
   return [];
@@ -62,11 +62,11 @@ function tlsCheck(hostInput, { port = 443, timeoutMs = 6000, servername } = {}) 
   const p = normalizePort(port);
   const sn = servername ? String(servername) : host;
 
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     const start = Date.now();
     let settled = false;
 
-    const finish = (result) => {
+    const finish = result => {
       if (settled) return;
       settled = true;
       resolve(result);
@@ -121,7 +121,7 @@ function tlsCheck(hostInput, { port = 443, timeoutMs = 6000, servername } = {}) 
       }
     );
 
-    socket.on('error', (e) => {
+    socket.on('error', e => {
       finish({
         ok: false,
         host,

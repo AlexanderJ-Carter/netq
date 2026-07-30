@@ -21,7 +21,10 @@ describe('tls helpers', () => {
   });
 
   test('collectSans parses string SANs', () => {
-    expect(collectSans({ subjectaltname: 'DNS:a.com, DNS:b.com' })).toEqual(['DNS:a.com', 'DNS:b.com']);
+    expect(collectSans({ subjectaltname: 'DNS:a.com, DNS:b.com' })).toEqual([
+      'DNS:a.com',
+      'DNS:b.com'
+    ]);
     expect(collectSans({ subjectaltname: ['DNS:a.com'] })).toEqual(['DNS:a.com']);
     expect(collectSans({})).toEqual([]);
   });

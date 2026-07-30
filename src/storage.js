@@ -21,12 +21,13 @@ function writeReportSync({ title, text, json }) {
   const dir = reportsDir();
   fs.mkdirSync(dir, { recursive: true });
   const ts = new Date().toISOString().replace(/[:.]/g, '-');
-  const safeTitle = String(title || 'report')
-    .toLowerCase()
-    .replace(/[^a-z0-9-_]+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '')
-    .slice(0, 40) || 'report';
+  const safeTitle =
+    String(title || 'report')
+      .toLowerCase()
+      .replace(/[^a-z0-9-_]+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
+      .slice(0, 40) || 'report';
 
   const base = path.join(dir, `${ts}-${safeTitle}`);
   const out = {};
@@ -96,7 +97,10 @@ function mergeDefaults(cfg, def) {
   const out = { ...def, ...cfg };
   out.defaults = { ...def.defaults, ...(cfg.defaults || {}) };
   out.favorites = Array.isArray(cfg.favorites) ? cfg.favorites : def.favorites;
-  out.recentHost = typeof cfg.recentHost === 'string' && cfg.recentHost.trim() ? cfg.recentHost.trim() : def.recentHost;
+  out.recentHost =
+    typeof cfg.recentHost === 'string' && cfg.recentHost.trim()
+      ? cfg.recentHost.trim()
+      : def.recentHost;
   return out;
 }
 
@@ -109,4 +113,3 @@ module.exports = {
   defaultConfig,
   rememberHost
 };
-

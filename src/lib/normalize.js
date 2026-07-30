@@ -55,11 +55,14 @@ function normalizeUrl(input) {
 function parsePorts(input) {
   const s = String(input || '').trim();
   if (!s) throw new Error('端口列表不能为空');
-  const parts = s.split(',').map((x) => x.trim()).filter(Boolean);
+  const parts = s
+    .split(',')
+    .map(x => x.trim())
+    .filter(Boolean);
   const ports = [];
   for (const part of parts) {
     if (part.includes('-')) {
-      const [aRaw, bRaw] = part.split('-').map((x) => x.trim());
+      const [aRaw, bRaw] = part.split('-').map(x => x.trim());
       const a = normalizePort(aRaw);
       const b = normalizePort(bRaw);
       const from = Math.min(a, b);

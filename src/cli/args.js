@@ -107,8 +107,7 @@ function parseArgs(args) {
     if (!action || action.startsWith('-')) {
       out.favoritesAction = 'list';
     } else if (!FAVORITE_ACTIONS.has(action)) {
-      out.error =
-        `未知 favorites 操作: ${action}\n用法: netq favorites list|add|remove|run\n示例: netq favorites list`;
+      out.error = `未知 favorites 操作: ${action}\n用法: netq favorites list|add|remove|run\n示例: netq favorites list`;
       return out;
     } else {
       out.favoritesAction = action;

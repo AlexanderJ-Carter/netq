@@ -105,7 +105,7 @@ async function handleChoice(choice) {
       if (more) {
         const rtype = await select({
           message: '选择记录类型',
-          choices: RR_TYPES.map((t) => ({ name: t, value: t }))
+          choices: RR_TYPES.map(t => ({ name: t, value: t }))
         });
         await runDns(host, { jsonMode: false, type: rtype });
       }
@@ -116,7 +116,7 @@ async function handleChoice(choice) {
       const host = await input({ message: '输入域名', default: hostDefault });
       const rtype = await select({
         message: '记录类型',
-        choices: ['A', 'AAAA', 'CNAME', 'TXT', 'MX', 'NS'].map((t) => ({ name: t, value: t }))
+        choices: ['A', 'AAAA', 'CNAME', 'TXT', 'MX', 'NS'].map(t => ({ name: t, value: t }))
       });
       await runDnsCompare(host, { jsonMode: false, type: rtype });
       break;
@@ -183,7 +183,10 @@ async function handleChoice(choice) {
       if (customPorts) {
         portsInput = await input({ message: '端口列表', default: '80,443' });
       }
-      const exportReport = await confirm({ message: '导出报告到 ~/.netq/reports/？', default: false });
+      const exportReport = await confirm({
+        message: '导出报告到 ~/.netq/reports/？',
+        default: false
+      });
       await runDoctor(host, { jsonMode: false, portsInput, exportReport });
       break;
     }
@@ -255,7 +258,8 @@ async function favoritesMenu() {
     }
     const label = await input({
       message: '标签',
-      default: port !== undefined && port !== null ? `${type}: ${target}:${port}` : `${type}: ${target}`
+      default:
+        port !== undefined && port !== null ? `${type}: ${target}:${port}` : `${type}: ${target}`
     });
     await runFavoritesAdd({ type, target, port, label }, { jsonMode: false });
     return;

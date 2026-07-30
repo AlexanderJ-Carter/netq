@@ -135,7 +135,8 @@ udp        0      0 0.0.0.0:53              0.0.0.0:*                           
   });
 
   test('skips header line', () => {
-    const stdout = 'Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name';
+    const stdout =
+      'Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name';
     expect(parseUnixNetstat(stdout)).toEqual([]);
   });
 });

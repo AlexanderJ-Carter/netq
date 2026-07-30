@@ -13,14 +13,14 @@ const storage = require('../storage');
  * @returns {Promise<Object>}
  */
 async function probeHttp(host, timeoutMs) {
-  const httpsResult = await lib.httpCheck(`https://${host}`, { timeoutMs }).catch((e) => ({
+  const httpsResult = await lib.httpCheck(`https://${host}`, { timeoutMs }).catch(e => ({
     ok: false,
     error: e.message,
     url: `https://${host}`
   }));
   if (httpsResult.ok) return { ...httpsResult, probed: 'https' };
 
-  const httpResult = await lib.httpCheck(`http://${host}`, { timeoutMs }).catch((e) => ({
+  const httpResult = await lib.httpCheck(`http://${host}`, { timeoutMs }).catch(e => ({
     ok: false,
     error: e.message,
     url: `http://${host}`
@@ -28,7 +28,8 @@ async function probeHttp(host, timeoutMs) {
   return {
     ...httpResult,
     probed: 'http',
-    httpsError: httpsResult.error || (httpsResult.status ? `status ${httpsResult.status}` : undefined)
+    httpsError:
+      httpsResult.error || (httpsResult.status ? `status ${httpsResult.status}` : undefined)
   };
 }
 
@@ -42,7 +43,10 @@ async function probeHttp(host, timeoutMs) {
  * @param {boolean} [options.exportReport]
  * @returns {Promise<{ok: boolean, host: string, checks: Object, score?: number, advice?: string[]}>}
  */
-async function runDoctor(host, { jsonMode = false, portsInput, quiet = false, exportReport = false } = {}) {
+async function runDoctor(
+  host,
+  { jsonMode = false, portsInput, quiet = false, exportReport = false } = {}
+) {
   const cfg = storage.readConfigSync();
   const tcpTimeout = cfg.defaults.tcpTimeoutMs ?? 2500;
   const httpTimeout = cfg.defaults.httpTimeoutMs ?? 6000;
@@ -68,17 +72,18 @@ async function runDoctor(host, { jsonMode = false, portsInput, quiet = false, ex
   const [dnsResult, pingResult] = await Promise.all([
     lib
       .dnsLookup(host)
-      .then((lookup) => ({ ok: true, addresses: lookup }))
-      .catch((e) => ({ ok: false, error: e.message })),
+      .then(lookup => ({ ok: true, addresses: lookup }))
+      .catch(e => ({ ok: false, error: e.message })),
     lib
       .ping(host, { count: 2 })
-      .then((ping) => ({ ok: ping.ok, output: ping.stdout, stderr: ping.stderr }))
-      .catch((e) => ({ ok: false, error: e.message }))
+      .then(ping => ({ ok: ping.ok, output: ping.stdout, stderr: ping.stderr }))
+      .catch(e => ({ ok: false, error: e.message }))
   ]);
 
   results.checks.dns = dnsResult;
   if (dnsSpinner) {
-    if (dnsResult.ok) dnsSpinner.succeed(`DNS: ${dnsResult.addresses.map((r) => r.address).join(', ')}`);
+    if (dnsResult.ok)
+      {dnsSpinner.succeed(`DNS: ${dnsResult.addresses.map(r => r.address).join(', ')}`);}
     else dnsSpinner.fail(`DNS: ${dnsResult.error}`);
   }
 
@@ -88,21 +93,26 @@ async function runDoctor(host, { jsonMode = false, portsInput, quiet = false, ex
     else pingSpinner.fail(`Ping: ${pingResult.stderr || pingResult.error || '失败'}`);
   }
 
-  const tcpSpinner = !jsonMode && !quiet ? ora(`TCP 端口检测中 (${ports.join(',')})...`).start() : null;
+  const tcpSpinner =
+    !jsonMode && !quiet ? ora(`TCP 端口检测中 (${ports.join(',')})...`).start() : null;
   const httpSpinner = !jsonMode && !quiet ? ora('HTTP 检测中...').start() : null;
   const tlsSpinner = !jsonMode && !quiet ? ora('TLS 检测中...').start() : null;
 
   const [tcpResult, httpResult, tlsResult] = await Promise.all([
-    lib.tcpBatchCheck(host, ports, { timeoutMs: tcpTimeout }).catch((e) => ({ ok: false, error: e.message })),
+    lib
+      .tcpBatchCheck(host, ports, { timeoutMs: tcpTimeout })
+      .catch(e => ({ ok: false, error: e.message })),
     probeHttp(host, httpTimeout),
-    lib.tlsCheck(host, { port: 443, timeoutMs: httpTimeout }).catch((e) => ({ ok: false, error: e.message }))
+    lib
+      .tlsCheck(host, { port: 443, timeoutMs: httpTimeout })
+      .catch(e => ({ ok: false, error: e.message }))
   ]);
 
   results.checks.tcp = tcpResult;
   if (tcpSpinner) {
     if (Array.isArray(tcpResult)) {
-      const openPorts = tcpResult.filter((t) => t.ok).map((t) => t.port);
-      const closedPorts = tcpResult.filter((t) => !t.ok).map((t) => t.port);
+      const openPorts = tcpResult.filter(t => t.ok).map(t => t.port);
+      const closedPorts = tcpResult.filter(t => !t.ok).map(t => t.port);
       if (closedPorts.length === 0) tcpSpinner.succeed(`TCP: ${openPorts.join(',')} 开放`);
       else if (openPorts.length === 0) tcpSpinner.fail(`TCP: ${closedPorts.join(',')} 关闭`);
       else tcpSpinner.warn(`TCP: ${openPorts.join(',')} 开放, ${closedPorts.join(',')} 关闭`);
@@ -114,7 +124,9 @@ async function runDoctor(host, { jsonMode = false, portsInput, quiet = false, ex
   results.checks.http = httpResult;
   if (httpSpinner) {
     if (httpResult.ok) {
-      httpSpinner.succeed(`${(httpResult.probed || 'HTTP').toUpperCase()}: ${httpResult.status} (${httpResult.ms}ms)`);
+      httpSpinner.succeed(
+        `${(httpResult.probed || 'HTTP').toUpperCase()}: ${httpResult.status} (${httpResult.ms}ms)`
+      );
     } else {
       httpSpinner.fail(`HTTP: ${httpResult.error || `状态码 ${httpResult.status}`}`);
     }
@@ -139,13 +151,17 @@ async function runDoctor(host, { jsonMode = false, portsInput, quiet = false, ex
   const httpOk = Boolean(results.checks.http && results.checks.http.ok);
   const tlsOk = Boolean(results.checks.tls && results.checks.tls.ok);
   const tcpOk = Array.isArray(results.checks.tcp)
-    ? results.checks.tcp.every((x) => x && x.ok)
+    ? results.checks.tcp.every(x => x && x.ok)
     : Boolean(results.checks.tcp && results.checks.tcp.ok);
   results.ok = dnsOk && pingOk && tcpOk && httpOk && tlsOk;
 
   if (!jsonMode && !quiet) {
     const scoreLabel =
-      results.score >= 90 ? ui.ok(`${results.score}/100`) : results.score >= 70 ? ui.warn(`${results.score}/100`) : ui.err(`${results.score}/100`);
+      results.score >= 90
+        ? ui.ok(`${results.score}/100`)
+        : results.score >= 70
+          ? ui.warn(`${results.score}/100`)
+          : ui.err(`${results.score}/100`);
     console.log(`\n${ui.title('健康分')}: ${scoreLabel}`);
     for (const line of results.advice) {
       console.log(ui.dim(`· ${line}`));
@@ -169,7 +185,8 @@ async function runDoctor(host, { jsonMode = false, portsInput, quiet = false, ex
     printJson('doctor', results.ok, results);
   } else if (quiet) {
     for (const t of results.checks.tcp || []) {
-      if (t && t.port !== undefined && t.port !== null) console.log(`${t.port}\t${t.ok ? 'open' : 'closed'}`);
+      if (t && t.port !== undefined && t.port !== null)
+        {console.log(`${t.port}\t${t.ok ? 'open' : 'closed'}`);}
     }
     console.log(`score\t${results.score}`);
     console.log(results.ok ? 'ok' : 'failed');

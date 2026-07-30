@@ -34,6 +34,15 @@ jobs:
         run: npm test
       - name: Security audit
         run: npm audit --audit-level=high
+      - name: Verify npm auth
+        run: |
+          if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
+            echo "NPM_TOKEN 未设置。请配置 GitHub Secret NPM_TOKEN，或在 npm 包设置里启用 Trusted Publisher。"
+            exit 1
+          fi
+          npm whoami
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Publish to npm
         run: npm publish --access public --provenance
         env:

@@ -40,3 +40,24 @@ git push origin --tags
 - 在 GitHub Release 页面核对说明与附件
 - 若启用 npm 发布，确认 registry 上版本可安装：`npm view @alexanderjcarter/netq version`
 - 需要时更新 GitHub Pages（随 `main` 的 `docs/` 部署）
+
+## npm 发布鉴权
+
+`Publish to npm` 工作流需要能向 `registry.npmjs.org` 写入 `@alexanderjcarter/netq`。
+
+任选其一：
+
+1. **Automation Token（推荐快速修好）**  
+   - 在 https://www.npmjs.com/settings/~/tokens 创建 Automation token  
+   - 仓库 Settings → Secrets and variables → Actions → 更新 Secret `NPM_TOKEN`  
+   - 然后：`gh workflow run "Publish to npm" --ref v1.1.0`
+
+2. **Trusted Publisher（OIDC，可逐渐弃用长期 token）**  
+   - 打开包页面 → Settings → Trusted Publisher  
+   - Publisher: GitHub Actions  
+   - Organization/user: `AlexanderJ-Carter`  
+   - Repository: `netq`  
+   - Workflow filename: `publish.yml`  
+   - 仍可保留 `NPM_TOKEN` 作为回退；工作流已开启 `id-token: write` 与 `--provenance`
+
+`404 Not Found` 在 `npm publish` 时通常表示 token 无效/过期，或对 scope 无写权限（npm 常不返回 401）。

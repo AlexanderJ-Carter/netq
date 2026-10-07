@@ -1,7 +1,7 @@
 {
   "name": "@alexanderjcarter/netq",
   "version": "1.1.0",
-  "description": "netq：面向开发/运维/普通用户的轻量交互式网络排查 CLI（TLS / DNS 对比 / Watch / 健康分）",
+  "description": "netq\uff1a\u9762\u5411\u5f00\u53d1/\u8fd0\u7ef4/\u666e\u901a\u7528\u6237\u7684\u8f7b\u91cf\u4ea4\u4e92\u5f0f\u7f51\u7edc\u6392\u67e5 CLI\uff08TLS / DNS \u5bf9\u6bd4 / Watch / \u5065\u5eb7\u5206\uff09",
   "license": "MIT",
   "author": "AlexanderJ-Carter <121274570+AlexanderJ-Carter@users.noreply.github.com>",
   "type": "commonjs",
@@ -70,7 +70,7 @@
   },
   "overrides": {
     "@babel/core": "7.29.6",
-    "js-yaml": "3.15.0",
-    "brace-expansion": "5.0.8"
+    "brace-expansion": "5.0.12",
+    "js-yaml": "^4.1.1"
   }
 }

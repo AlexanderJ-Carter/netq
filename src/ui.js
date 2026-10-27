@@ -16,14 +16,14 @@ function colorize(fn, text) {
 
 function brand() {
   return (
-    colorize(chalk.bold.green, 'netq') +
-    colorize(chalk.gray, ' · ') +
+    colorize(chalk.bold.cyan, 'netq') +
+    colorize(chalk.gray, ' // ') +
     colorize(chalk.gray, '交互式网络排查')
   );
 }
 
 function title(text) {
-  return colorize(chalk.bold.green, text);
+  return colorize(chalk.bold.white, text);
 }
 
 function ok(text) {
@@ -43,7 +43,7 @@ function dim(text) {
 }
 
 function info(text) {
-  return colorize(chalk.green, text);
+  return colorize(chalk.cyan, text);
 }
 
 function termWidth() {
@@ -53,11 +53,11 @@ function termWidth() {
 }
 
 function hr() {
-  return dim('—'.repeat(Math.max(40, termWidth() - 2)));
+  const n = Math.max(40, termWidth() - 2);
+  return dim('─'.repeat(n));
 }
 
 function clear() {
-  // 在大多数终端里足够好；不强依赖第三方 clear 包
   console.clear();
 }
 
@@ -67,7 +67,7 @@ function kvTable(rows, { head = ['字段', '值'] } = {}) {
   const right = Math.max(30, w - left - 6);
   const t = new Table({
     head,
-    style: { head: ['green'] },
+    style: { head: ['cyan'] },
     wordWrap: true,
     colWidths: [left, right]
   });
@@ -78,7 +78,7 @@ function kvTable(rows, { head = ['字段', '值'] } = {}) {
 function listTable(head, rows) {
   const t = new Table({
     head,
-    style: { head: ['green'] },
+    style: { head: ['cyan'] },
     wordWrap: true
   });
   for (const r of rows) t.push(r);

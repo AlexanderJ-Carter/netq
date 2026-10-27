@@ -5,19 +5,31 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="color-scheme" content="dark" />
     <meta name="theme-color" content="#0a0a0b" />
-    <title>netq · 交互式网络排查 CLI</title>
+    <title>netq — 网络诊断 CLI · doctor / TLS / DNS / Watch</title>
     <meta
       name="description"
-      content="netq：轻量网络排查 CLI。菜单交互 + 子命令；doctor 健康分、TLS、DNS 对比、Watch。"
+      content="netq：Node.js 网络排查 CLI。菜单或子命令；doctor 健康分、TLS 证书、DNS 对比、Watch 监视；统一 --json 与退出码，适合脚本与 agent。"
     />
-    <meta property="og:title" content="netq · 交互式网络排查 CLI" />
+    <meta
+      name="keywords"
+      content="netq,网络诊断,CLI,ping,dns,tls,traceroute,devops,nodejs"
+    />
+    <link rel="canonical" href="https://netq.alexander.xin/" />
+    <meta property="og:locale" content="zh_CN" />
+    <meta property="og:site_name" content="netq" />
+    <meta property="og:title" content="netq — 网络诊断 CLI" />
     <meta
       property="og:description"
-      content="一眼看懂网络问题：体检打分、TLS 证书、DNS 对比、实时监视。"
+      content="doctor 并行体检、TLS、DNS 对比、Watch。菜单与子命令共用能力；--json 机器可读输出。"
     />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://netq.alexander.xin/" />
     <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="netq — 网络诊断 CLI" />
+    <meta
+      name="twitter:description"
+      content="轻量终端工具：连通性、证书、DNS 差异、端口与 HTTP。Node ≥ 20。"
+    />
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -25,6 +37,21 @@
       href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "netq",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "Windows, macOS, Linux",
+        "softwareVersion": "1.1",
+        "description": "交互式与子命令式网络诊断 CLI，支持 doctor、TLS、DNS 对比与 Watch。",
+        "url": "https://netq.alexander.xin/",
+        "downloadUrl": "https://www.npmjs.com/package/@alexanderjcarter/netq",
+        "license": "https://opensource.org/licenses/MIT",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+      }
+    </script>
     <style>
       :root {
         --bg: #0a0a0b;
@@ -40,6 +67,7 @@
         --accent-dim: #1fb86a;
         --accent-fg: #04140c;
         --warn: #ffb020;
+        --code-fg: #e6e6ee;
         --terminal-bg: #050506;
         --terminal-fg: #d4d4dc;
         --terminal-dim: #6e6e7a;
@@ -50,6 +78,7 @@
         --font-ui: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
         --font-mono: "IBM Plex Mono", "Cascadia Code", "SF Mono", Consolas, monospace;
         --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--border-focus);
+        --code-size: clamp(12px, 2.8vw, 13px);
       }
 
       *,
@@ -60,7 +89,7 @@
 
       html {
         scroll-behavior: smooth;
-        scroll-padding-top: 56px;
+        scroll-padding-top: 64px;
       }
 
       body {
@@ -145,7 +174,7 @@
         justify-content: space-between;
         gap: 12px;
         padding: 0 16px;
-        height: 48px;
+        min-height: 48px;
         background: color-mix(in srgb, var(--bg) 92%, transparent);
         backdrop-filter: blur(8px);
         border-bottom: 1px solid var(--border);
@@ -155,6 +184,7 @@
         display: inline-flex;
         align-items: center;
         gap: 10px;
+        flex-shrink: 0;
         font-family: var(--font-mono);
         font-weight: 600;
         font-size: 14px;
@@ -180,19 +210,27 @@
 
       .topbar-nav {
         display: flex;
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
         align-items: center;
-        gap: 4px;
+        gap: 2px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        max-width: min(100%, 72vw);
+      }
+      .topbar-nav::-webkit-scrollbar {
+        display: none;
       }
 
       .topbar-nav a {
-        padding: 6px 10px;
+        padding: 8px 10px;
         font-family: var(--font-mono);
         font-size: 12px;
         font-weight: 500;
         color: var(--fg-muted);
         text-decoration: none;
         border-radius: var(--radius);
+        white-space: nowrap;
       }
       .topbar-nav a:hover {
         color: var(--fg);
@@ -211,7 +249,7 @@
       }
 
       .hero {
-        padding: 28px 0 20px;
+        padding: 28px 0 24px;
         border-bottom: 1px solid var(--border);
       }
 
@@ -231,7 +269,7 @@
       .hero-copy h1 {
         margin: 0;
         font-family: var(--font-mono);
-        font-size: clamp(2rem, 6vw, 2.75rem);
+        font-size: clamp(1.85rem, 5.5vw, 2.75rem);
         font-weight: 600;
         letter-spacing: -0.04em;
         line-height: 1.05;
@@ -242,21 +280,60 @@
         color: var(--accent);
       }
 
+      .hero-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 10px;
+        margin-top: 14px;
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--fg-dim);
+        letter-spacing: 0.02em;
+      }
+
+      .hero-meta span {
+        padding: 2px 0;
+      }
+
+      .hero-meta span::after {
+        content: "·";
+        margin-left: 10px;
+        color: var(--border);
+      }
+      .hero-meta span:last-child::after {
+        content: none;
+      }
+
       .tagline {
         margin: 12px 0 0;
         font-size: 1.05rem;
         font-weight: 600;
         letter-spacing: -0.02em;
         color: var(--fg);
-        max-width: 28ch;
+        max-width: 36ch;
       }
 
       .lede {
         margin: 10px 0 0;
         font-size: 0.9rem;
         color: var(--fg-muted);
-        max-width: 42ch;
+        max-width: 46ch;
+        line-height: 1.6;
+      }
+
+      .hero-points {
+        margin: 14px 0 0;
+        padding-left: 1.15rem;
+        font-size: 0.88rem;
+        color: var(--fg-muted);
         line-height: 1.55;
+      }
+      .hero-points li {
+        margin: 4px 0;
+      }
+      .hero-points strong {
+        color: var(--fg);
+        font-weight: 600;
       }
 
       .hero-actions {
@@ -271,7 +348,7 @@
         align-items: center;
         justify-content: center;
         gap: 8px;
-        min-height: 36px;
+        min-height: 40px;
         padding: 0 14px;
         border: 1px solid var(--border);
         border-radius: var(--radius);
@@ -308,24 +385,76 @@
         color: var(--fg);
       }
 
-      .install-inline {
+      .install-block {
+        margin-top: 20px;
+        padding: 12px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--bg-panel);
+      }
+
+      .install-block h2 {
+        margin: 0 0 10px;
+        font-family: var(--font-mono);
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--accent-dim);
+      }
+
+      .install-row {
         display: flex;
         flex-wrap: wrap;
         align-items: stretch;
         gap: 8px;
-        margin-top: 16px;
       }
 
-      .install-inline code {
-        flex: 1 1 200px;
-        display: block;
-        padding: 10px 12px;
+      .install-row + .install-row {
+        margin-top: 8px;
+      }
+
+      .install-label {
+        flex: 0 0 100%;
+        font-size: 0.78rem;
+        color: var(--fg-dim);
+        margin: 0;
+      }
+
+      .code-block {
+        flex: 1 1 12rem;
+        margin: 0;
+        padding: 11px 12px;
         border: 1px solid var(--border);
         border-radius: var(--radius);
-        background: var(--bg-panel);
-        font-size: 13px;
+        background: var(--terminal-bg);
+        font-family: var(--font-mono);
+        font-size: var(--code-size);
+        line-height: 1.55;
         color: var(--accent);
         overflow-x: auto;
+        scrollbar-gutter: stable;
+        tab-size: 2;
+        -webkit-overflow-scrolling: touch;
+        word-break: break-all;
+      }
+
+      .install-note {
+        margin: 10px 0 0;
+        font-size: 0.8rem;
+        color: var(--fg-dim);
+      }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
       }
 
       .term {
@@ -362,11 +491,13 @@
         margin: 0;
         padding: 14px 14px 16px;
         font-family: var(--font-mono);
-        font-size: 12px;
-        line-height: 1.6;
+        font-size: var(--code-size);
+        line-height: 1.65;
         color: var(--terminal-fg);
         white-space: pre-wrap;
         overflow-x: auto;
+        tab-size: 2;
+        scrollbar-gutter: stable;
       }
 
       .term-body .dim {
@@ -426,7 +557,7 @@
         margin: 0 0 14px;
         font-size: 0.88rem;
         color: var(--fg-muted);
-        max-width: 58ch;
+        max-width: 62ch;
       }
 
       .cmd-grid {
@@ -463,12 +594,15 @@
 
       .panel pre {
         margin: 0;
-        padding: 12px;
+        padding: 12px 14px;
         overflow: auto;
         font-family: var(--font-mono);
-        font-size: 11.5px;
-        line-height: 1.65;
-        color: var(--fg);
+        font-size: var(--code-size);
+        line-height: 1.7;
+        color: var(--code-fg);
+        tab-size: 2;
+        scrollbar-gutter: stable;
+        -webkit-overflow-scrolling: touch;
       }
 
       .feature-table {
@@ -513,17 +647,26 @@
         color: var(--fg);
       }
 
-      .pill {
-        display: inline-block;
-        margin-left: 6px;
-        padding: 1px 5px;
-        font-size: 9px;
-        font-weight: 700;
-        letter-spacing: 0.08em;
-        color: var(--accent);
-        border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border));
-        border-radius: 3px;
-        vertical-align: middle;
+      @media (max-width: 560px) {
+        .feature-table,
+        .feature-table tbody,
+        .feature-table tr,
+        .feature-table th,
+        .feature-table td {
+          display: block;
+        }
+        .feature-table th {
+          width: auto;
+          border-bottom: none;
+          padding-bottom: 4px;
+        }
+        .feature-table td {
+          padding-top: 0;
+          padding-bottom: 14px;
+        }
+        .feature-table tr:last-child td {
+          padding-bottom: 10px;
+        }
       }
 
       .json-panel {
@@ -534,12 +677,15 @@
 
       .json-panel pre {
         margin: 0;
-        padding: 14px;
+        padding: 14px 16px;
         font-family: var(--font-mono);
-        font-size: 11.5px;
-        line-height: 1.6;
-        color: var(--terminal-fg);
+        font-size: var(--code-size);
+        line-height: 1.65;
+        color: var(--code-fg);
         overflow: auto;
+        tab-size: 2;
+        scrollbar-gutter: stable;
+        -webkit-overflow-scrolling: touch;
       }
 
       .note {
@@ -576,6 +722,31 @@
         }
       }
 
+      @media (max-width: 480px) {
+        .wrap {
+          padding-left: 12px;
+          padding-right: 12px;
+        }
+        .topbar {
+          padding: 8px 12px;
+          flex-wrap: wrap;
+        }
+        .topbar-nav {
+          max-width: 100%;
+          order: 3;
+          width: 100%;
+          padding-bottom: 2px;
+        }
+        .hero-actions .btn {
+          flex: 1 1 calc(50% - 4px);
+          min-width: 9rem;
+        }
+        .install-row .btn {
+          flex: 1 1 auto;
+          min-width: 5.5rem;
+        }
+      }
+
       @media (prefers-reduced-motion: reduce) {
         *,
         *::before,
@@ -600,7 +771,7 @@
         <nav class="topbar-nav" aria-label="站点导航">
           <a href="#install">安装</a>
           <a href="#commands">命令</a>
-          <a href="#features">能力</a>
+          <a href="#features">子命令</a>
           <a href="#json">JSON</a>
           <a href="https://github.com/AlexanderJ-Carter/netq">GitHub</a>
         </nav>
@@ -608,26 +779,53 @@
 
       <main id="main">
         <div class="wrap">
-          <section class="hero" aria-label="netq 产品介绍">
+          <section class="hero" aria-labelledby="hero-title">
             <div class="hero-grid">
               <div class="hero-copy">
-                <h1><span>netq</span></h1>
-                <p class="tagline">一眼看懂网络哪里出了问题</p>
+                <h1 id="hero-title"><span>netq</span></h1>
+                <p class="tagline">终端网络诊断 CLI</p>
+                <div class="hero-meta" aria-label="规格">
+                  <span>Node ≥ 20</span>
+                  <span>MIT</span>
+                  <span>Win / macOS / Linux</span>
+                </div>
                 <p class="lede">
-                  菜单交互 + 子命令脚本同一套能力。体检打分、TLS、DNS 对比、实时监视。
+                  同一套检查链支持菜单交互与子命令。面向人工排查与脚本/agent：失败时退出码为
+                  1，机器输出用 <code>--json</code>。
                 </p>
+                <ul class="hero-points">
+                  <li><strong>入口</strong>：<code>netq</code> 进菜单；或 <code>netq doctor &lt;host&gt;</code> 直接跑体检</li>
+                  <li><strong>体检</strong>：DNS、Ping、TCP、HTTP、TLS 并行，输出 0–100 健康分</li>
+                  <li><strong>配置</strong>：<code>~/.netq/config.json</code>（收藏与最近主机）</li>
+                </ul>
                 <div class="hero-actions">
                   <button class="btn btn-primary" type="button" id="copy-install">
-                    复制安装命令
+                    复制全局安装
                   </button>
-                  <a class="btn btn-ghost" href="https://github.com/AlexanderJ-Carter/netq#readme"
+                  <a class="btn btn-ghost" href="#commands">命令速查</a>
+                  <a
+                    class="btn btn-ghost"
+                    href="https://github.com/AlexanderJ-Carter/netq#readme"
                     >README</a
                   >
                 </div>
-                <div class="install-inline" id="install" aria-label="安装">
-                  <code id="install-text">npm i -g @alexanderjcarter/netq</code>
-                  <button class="btn btn-ghost" type="button" id="copy-install-2">复制</button>
+                <div class="install-block" id="install" aria-labelledby="install-heading">
+                  <h2 id="install-heading">Install</h2>
+                  <p class="install-label">全局安装（推荐）</p>
+                  <div class="install-row">
+                    <code class="code-block" id="install-text">npm i -g @alexanderjcarter/netq</code>
+                    <button class="btn btn-ghost" type="button" data-copy="global">复制</button>
+                  </div>
+                  <p class="install-label">不安装，单次运行</p>
+                  <div class="install-row">
+                    <code class="code-block" id="npx-text"
+                      >npx @alexanderjcarter/netq doctor github.com</code
+                    >
+                    <button class="btn btn-ghost" type="button" data-copy="npx">复制</button>
+                  </div>
+                  <p class="install-note">安装后执行 <code>netq</code> 或任意子命令；需已安装 Node.js 20+。</p>
                 </div>
+                <p class="sr-only" id="copy-status" role="status" aria-live="polite"></p>
               </div>
               <div class="term" aria-label="终端输出示例">
                 <div class="term-bar">
@@ -655,12 +853,15 @@
           <section id="commands">
             <div class="section-head">
               <p class="section-label">Commands</p>
-              <h2 class="section-title">最常用的几条</h2>
+              <h2 class="section-title">常用子命令</h2>
             </div>
-            <p class="section-lead">交互与脚本共用同一套子命令；失败时退出码为 1。</p>
+            <p class="section-lead">
+              交互菜单调用的逻辑与子命令相同。脚本侧加 <code>--json</code>；安静模式部分命令支持
+              <code>-q</code>。
+            </p>
             <div class="cmd-grid">
               <div class="panel">
-                <h3 class="panel-head">日常排查</h3>
+                <h3 class="panel-head">交互 / 手工</h3>
                 <pre>netq
 netq doctor github.com --ports "80,443"
 netq tls github.com
@@ -669,7 +870,7 @@ netq watch 1.1.1.1 -c 5
 netq tcp github.com 443</pre>
               </div>
               <div class="panel">
-                <h3 class="panel-head">脚本 / Agent</h3>
+                <h3 class="panel-head">CI / Agent</h3>
                 <pre>netq doctor github.com --json
 netq tls github.com --json
 netq dns-compare github.com --json
@@ -682,43 +883,43 @@ netq help doctor</pre>
 
           <section id="features">
             <div class="section-head">
-              <p class="section-label">Capabilities</p>
-              <h2 class="section-title">覆盖日常诊断</h2>
+              <p class="section-label">Subcommands</p>
+              <h2 class="section-title">检查项一览</h2>
             </div>
-            <p class="section-lead">从出口 IP 到证书过期，一条工具链走完常见排查路径。</p>
+            <p class="section-lead">从出口 IP、解析差异到证书与端口，覆盖常见连通性排查路径。</p>
             <table class="feature-table">
               <tbody>
                 <tr>
-                  <th scope="row">doctor<span class="pill">NEW</span></th>
-                  <td>DNS + Ping + TCP + HTTP + TLS 并行体检，输出健康分与建议，可导出报告</td>
+                  <th scope="row">doctor</th>
+                  <td>并行 DNS / Ping / TCP / HTTP / TLS；健康分与建议；<code>--export</code> 写入报告目录</td>
                 </tr>
                 <tr>
-                  <th scope="row">tls<span class="pill">NEW</span></th>
-                  <td>TLS 握手检查证书有效期、SAN、协议与密码套件</td>
+                  <th scope="row">tls</th>
+                  <td>握手结果：有效期、SAN、协议与密码套件</td>
                 </tr>
                 <tr>
-                  <th scope="row">dns-compare<span class="pill">NEW</span></th>
-                  <td>对比系统 DNS 与 Cloudflare / Google，快速发现污染或分流差异</td>
+                  <th scope="row">dns-compare</th>
+                  <td>系统解析 vs Cloudflare / Google，标出记录不一致</td>
                 </tr>
                 <tr>
-                  <th scope="row">watch<span class="pill">NEW</span></th>
-                  <td>周期性 Ping + TCP 监视，终端刷新连通状态</td>
+                  <th scope="row">watch</th>
+                  <td>按间隔 Ping + TCP，终端刷新状态</td>
                 </tr>
                 <tr>
                   <th scope="row">dns / ping</th>
-                  <td>lookup 与扩展记录类型；系统 ping / traceroute 路径定位</td>
+                  <td>lookup 与扩展记录类型；系统 ping / traceroute</td>
                 </tr>
                 <tr>
                   <th scope="row">tcp / http</th>
-                  <td>端口列表与范围检测；HTTP 状态码与重定向链</td>
+                  <td>端口列表与范围；HTTP 状态码与重定向链</td>
                 </tr>
                 <tr>
                   <th scope="row">listening</th>
-                  <td>本机 Listening 列表，Windows 可解析进程名</td>
+                  <td>本机监听套接字；Windows 可解析进程名</td>
                 </tr>
                 <tr>
                   <th scope="row">favorites</th>
-                  <td>常用目标增删查跑，配置落在 ~/.netq/config.json</td>
+                  <td>收藏目标的增删查跑</td>
                 </tr>
               </tbody>
             </table>
@@ -727,10 +928,10 @@ netq help doctor</pre>
           <section id="json">
             <div class="section-head">
               <p class="section-label">Machine output</p>
-              <h2 class="section-title">统一 JSON 结构</h2>
+              <h2 class="section-title">JSON 契约</h2>
             </div>
             <p class="section-lead">
-              所有命令支持 <code>--json</code>，方便 CI 与 agent 解析。
+              各子命令支持 <code>--json</code>，顶层字段固定，便于管道与 agent 解析。
             </p>
             <div class="json-panel">
               <pre>{
@@ -746,7 +947,7 @@ netq help doctor</pre>
   }
 }</pre>
             </div>
-            <p class="note">用退出码或 <code>ok</code> 字段判断成败即可。</p>
+            <p class="note">判定成败：进程退出码，或解析 <code>ok</code> 布尔字段。</p>
           </section>
 
           <footer>
@@ -759,24 +960,40 @@ netq help doctor</pre>
                 >Contributing</a
               >
             </p>
-            <p>GitHub Pages · netq.alexander.xin · 随 main 更新</p>
+            <p>
+              <a href="https://alexander.xin/network">Folio 站群地图</a> ·
+              <a href="https://alexander.xin/">alexander.xin</a> ·
+              netq.alexander.xin · 随 main 部署
+            </p>
           </footer>
         </div>
       </main>
     </div>
 
     <script>
-      const install = "npm i -g @alexanderjcarter/netq";
+      const installGlobal = "npm i -g @alexanderjcarter/netq";
+      const installNpx = "npx @alexanderjcarter/netq doctor github.com";
 
-      async function copyInstall(button, idleLabel) {
+      const copyStatus = document.getElementById("copy-status");
+
+      async function copyText(text, button, idleLabel) {
         try {
-          await navigator.clipboard.writeText(install);
+          await navigator.clipboard.writeText(text);
           button.textContent = "已复制";
+          if (copyStatus) {
+            copyStatus.textContent = "已复制到剪贴板";
+          }
           setTimeout(() => {
             button.textContent = idleLabel;
+            if (copyStatus) {
+              copyStatus.textContent = "";
+            }
           }, 1600);
         } catch {
-          button.textContent = "复制失败";
+          button.textContent = "失败";
+          if (copyStatus) {
+            copyStatus.textContent = "复制失败，请手动选择命令文本";
+          }
           setTimeout(() => {
             button.textContent = idleLabel;
           }, 1600);
@@ -784,10 +1001,15 @@ netq help doctor</pre>
       }
 
       document.getElementById("copy-install").addEventListener("click", (e) => {
-        copyInstall(e.currentTarget, "复制安装命令");
+        copyText(installGlobal, e.currentTarget, "复制全局安装");
       });
-      document.getElementById("copy-install-2").addEventListener("click", (e) => {
-        copyInstall(e.currentTarget, "复制");
+
+      document.querySelectorAll("[data-copy]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const kind = button.getAttribute("data-copy");
+          const text = kind === "npx" ? installNpx : installGlobal;
+          copyText(text, button, "复制");
+        });
       });
     </script>
   </body>
